@@ -415,26 +415,43 @@ input {
 }
 
 .hero-slide--peugeot {
+<<<<<<< HEAD
   background-image: url("./assets/peugeot-3008.jpeg");
+=======
+  background-image: url("assets/Peugeot3008.jpeg");
+>>>>>>> 87f47e3373d95f8cf5401254af3a948b278872be
   animation-name: heroPeugeot, heroLayerMotion;
 }
 
 .hero-slide--cablage {
+<<<<<<< HEAD
   background-image: url("./assets/cablage-hv.jpg");
+=======
+  background-image: url("assets/cablage%20HV.jpg");
+>>>>>>> 87f47e3373d95f8cf5401254af3a948b278872be
   animation-name: heroCablage, heroLayerMotion;
 }
 
 .hero-slide--home-versigent {
+<<<<<<< HEAD
   background-image: url("./assets/versigent-logo.jpg");
+=======
+  background-image: url("assets/versigent.png.jpg");
+>>>>>>> 87f47e3373d95f8cf5401254af3a948b278872be
   animation-name: heroVersigent, heroLayerMotion;
 }
 
 .hero-slide--home-aptiv-person {
+<<<<<<< HEAD
   background-image: url("./assets/fond.jpg");
+=======
+  background-image: url("assets/fond.jpg");
+>>>>>>> 87f47e3373d95f8cf5401254af3a948b278872be
   animation-name: heroTeslaBg, heroLayerMotion;
 }
 
 .hero-slide--dashboard-stellantis {
+<<<<<<< HEAD
   background-image: url("./assets/peugeot-3008.jpeg");
 }
 
@@ -444,6 +461,17 @@ input {
 
 .hero-slide--dashboard-tesla {
   background-image: url("./assets/tesla-background.jpg");
+=======
+  background-image: url("assets/Peugeot3008.jpeg");
+}
+
+.hero-slide--dashboard-volvo {
+  background-image: url("assets/volvo%20bag%20round.jpg");
+}
+
+.hero-slide--dashboard-tesla {
+  background-image: url("assets/tesla%20bag%20round.jpg");
+>>>>>>> 87f47e3373d95f8cf5401254af3a948b278872be
 }
 
 .dashboard-page .hero-rotator .hero-slide {

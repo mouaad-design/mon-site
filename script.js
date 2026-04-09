@@ -1,3 +1,4 @@
+HEAD
 const STORAGE_KEY = "sc-training-home-lang";
 const LOCATION_ACCESS_KEY = "sc-training-location-access";
 const CLIENT_STORAGE_KEY = "sc-training-client";
@@ -60,12 +61,77 @@ let verifyButtonResetTimer = null;
 let geolocationRetryCount = 0;
 let locationAttemptCount = 0;
 let locationRequestInProgress = false;
+
+const STORAGE_KEY = "sc-training-home-lang";
+const LOCATION_ACCESS_KEY = "sc-training-location-access";
+const CLIENT_STORAGE_KEY = "sc-training-client";
+const SUPPORT_STORAGE_KEY = "sc-training-support-items";
+const COMPANY_LAT = 34.304222;
+const COMPANY_LNG = -6.390333;
+const ALLOWED_RADIUS_METERS = 150;
+const PRACTICAL_RADIUS_METERS = 150;
+const MAX_ACCURACY_BONUS_METERS = 180;
+const MAX_LOCATION_ATTEMPTS = 3;
+
+const langButtons = document.querySelectorAll(".lang-btn");
+const translatableNodes = document.querySelectorAll("[data-i18n]");
+const revealNodes = document.querySelectorAll(".reveal-section");
+const clientCardNodes = document.querySelectorAll("[data-client]");
+const clientNameNodes = document.querySelectorAll("[data-client-name]");
+const clientLogoNodes = document.querySelectorAll("[data-client-logo]");
+const documentActionNodes = document.querySelectorAll("[data-doc-action]");
+const supportActionNodes = document.querySelectorAll("[data-support-action]");
+const documentFrameNode = document.querySelector("[data-doc-frame]");
+const documentVideoNode = document.querySelector("[data-doc-video]");
+const documentFrameWrapNode = document.querySelector("[data-doc-frame-wrap]");
+const documentClientNameNode = document.querySelector("[data-doc-client-name]");
+const documentPageKickerNode = document.querySelector("[data-doc-page-kicker]");
+const documentPageTitleNode = document.querySelector("[data-doc-page-title]");
+const documentSectionNameNode = document.querySelector("[data-doc-section-name]");
+const documentListNode = document.querySelector("[data-doc-list]");
+const documentUploadWrapNode = document.querySelector("[data-doc-upload-wrap]");
+const documentUploadHintNode = document.querySelector("[data-doc-upload-hint]");
+const documentFullscreenButtonNode = document.querySelector("[data-doc-fullscreen-button]");
+const documentClosePreviewNode = document.querySelector("[data-doc-close-preview]");
+const documentUploadInputNode = document.querySelector("[data-doc-upload-input]");
+const documentVideoUploadWrapNode = document.querySelector("[data-doc-video-upload-wrap]");
+const documentVideoUploadInputNode = document.querySelector("[data-doc-video-upload-input]");
+const documentStatusNodes = document.querySelectorAll("[data-doc-status]");
+const supportClientNameNode = document.querySelector("[data-support-client-name]");
+const supportFormNode = document.querySelector("[data-support-form]");
+const supportTypeInputNode = document.querySelector("[data-support-type-input]");
+const supportTypeCardNodes = document.querySelectorAll("[data-support-type-card]");
+const supportNameInputNode = document.querySelector("[data-support-name-input]");
+const supportPriorityInputNode = document.querySelector("[data-support-priority-input]");
+const supportPhoneInputNode = document.querySelector("[data-support-phone-input]");
+const supportAreaInputNode = document.querySelector("[data-support-area-input]");
+const supportSubjectInputNode = document.querySelector("[data-support-subject-input]");
+const supportDetailsInputNode = document.querySelector("[data-support-details-input]");
+const supportCopyButtonNode = document.querySelector("[data-support-copy-button]");
+const supportStatusNode = document.querySelector("[data-support-status]");
+const supportHistoryNode = document.querySelector("[data-support-history]");
+const verifyLocationBtn = document.getElementById("verifyLocationBtn");
+const testAccessBtn = document.getElementById("testAccessBtn");
+const locationStatus = document.getElementById("locationStatus");
+const locationDetail = document.getElementById("locationDetail");
+const gpsCard = document.querySelector(".gps-card");
+
+let locationStatusKey = locationStatus ? locationStatus.dataset.i18n || "locationWaiting" : "";
+let locationStatusState = locationStatus ? locationStatus.dataset.state || "info" : "info";
+let verifyButtonKey = "locationButton";
+let verifyButtonDisabled = false;
+let verifyButtonResetTimer = null;
+let geolocationRetryCount = 0;
+let locationAttemptCount = 0;
+let locationRequestInProgress = false;
+ 87f47e3373d95f8cf5401254af3a948b278872be
 let supportStatusKey = "supportStatusIdle";
 let uploadedDocuments = [];
 let uploadedDocumentCounter = 0;
 let documentSelectionOverride = "";
 
 const documentLibraries = {
+HEAD
   stellantis: {
     quality: [
       {
@@ -386,6 +452,328 @@ function formatSupportDate(value, lang) {
   }
 }
 
+
+  stellantis: {
+    quality: [
+      {
+        id: "cs-operateur",
+        title: "Fichier CS operateur",
+        path: "documents/stellantis/fichier%20CS%20operateur.pdf"
+      },
+      {
+        id: "caracteres-speciaux-arabe",
+        title: "CARACTERES SPECIAUX arabe",
+        path: "documents/stellantis/caracteres-speciaux-arabe.pdf"
+      },
+      {
+        id: "mapping-charge-ar-v2",
+        title: "Mapping charge AR version 2",
+        path: "documents/stellantis/mapping%20charge%20AR%20version%202.pdf"
+      }
+    ],
+    training: [
+      {
+        id: "presentation-operateur",
+        title: "Presentation operateur",
+        path: "documents/stellantis/presentation-operateur.pdf"
+      }
+    ]
+  }
+};
+
+function getText(lang, key) {
+  return (translations[lang] && translations[lang][key]) || translations.fr[key] || "";
+}
+
+function normalizeDocumentSection(section) {
+  if (section === "training" || section === "tutorials" || section === "quiz") {
+    return section;
+  }
+
+  return "quality";
+}
+
+function getDocumentLibrary(client, section = "quality") {
+  const normalizedSection = normalizeDocumentSection(section);
+  const clientLibrary = documentLibraries[client];
+
+  if (!clientLibrary) {
+    return [];
+  }
+
+  return clientLibrary[normalizedSection] || [];
+}
+
+function getDocumentSectionLabelKey(section = "quality") {
+  const normalizedSection = normalizeDocumentSection(section);
+
+  if (normalizedSection === "training") {
+    return "dashboardCard1Title";
+  }
+
+  if (normalizedSection === "quiz") {
+    return "dashboardCard2Title";
+  }
+
+  if (normalizedSection === "tutorials") {
+    return "dashboardCard3Title";
+  }
+
+  return "dashboardCard4Title";
+}
+
+function isTutorialSection(section = "quality") {
+  return normalizeDocumentSection(section) === "tutorials";
+}
+
+function isVideoDocument(documentItem) {
+  if (!documentItem) {
+    return false;
+  }
+
+  if (documentItem.mediaType) {
+    return documentItem.mediaType.startsWith("video/");
+  }
+
+  return /\.(mp4|webm|ogg|mov)$/i.test(documentItem.path || "");
+}
+
+function resetDocumentPreview() {
+  if (documentFrameNode) {
+    documentFrameNode.removeAttribute("src");
+    documentFrameNode.hidden = true;
+  }
+
+  if (documentVideoNode) {
+    documentVideoNode.pause();
+    documentVideoNode.removeAttribute("src");
+    documentVideoNode.load();
+    documentVideoNode.hidden = true;
+  }
+}
+
+function isDocumentPreviewFullscreen() {
+  return document.fullscreenElement === documentFrameWrapNode;
+}
+
+function syncPreviewFullscreenState(lang = document.documentElement.lang || "fr") {
+  const isFullscreen = isDocumentPreviewFullscreen();
+
+  if (documentClosePreviewNode) {
+    documentClosePreviewNode.hidden = !isFullscreen;
+  }
+
+  if (documentFullscreenButtonNode) {
+    documentFullscreenButtonNode.textContent = isFullscreen
+      ? getText(lang, "documentPageExitFullscreen")
+      : getText(lang, "documentPageFullscreen");
+  }
+}
+
+async function openDocumentPreviewInFullscreen() {
+  if (!documentFrameWrapNode || documentFrameWrapNode.hidden) {
+    return;
+  }
+
+  try {
+    if (isDocumentPreviewFullscreen()) {
+      await document.exitFullscreen();
+    } else {
+      await documentFrameWrapNode.requestFullscreen();
+    }
+  } catch {
+    // Ignore fullscreen errors to keep the page usable.
+  } finally {
+    syncPreviewFullscreenState();
+  }
+}
+
+function setLocationStatus(message, state = "info", key = "") {
+  if (!locationStatus) {
+    return;
+  }
+
+  locationStatus.textContent = message;
+  locationStatus.dataset.state = state;
+  locationStatusState = state;
+
+  if (gpsCard) {
+    gpsCard.dataset.state = state;
+  }
+
+  if (key) {
+    locationStatusKey = key;
+  }
+}
+
+function setLocationDetail(message = "") {
+  if (!locationDetail) {
+    return;
+  }
+
+  locationDetail.textContent = message;
+}
+
+function buildLocationDetail(lang, distance, radius, accuracy = 0) {
+  const roundedDistance = Math.round(distance);
+  const roundedRadius = Math.round(radius);
+  const roundedAccuracy = Math.round(accuracy || 0);
+
+  if (lang === "ar") {
+    return `\u0627\u0644\u0645\u0633\u0627\u0641\u0629 \u0627\u0644\u0645\u0643\u062a\u0634\u0641\u0629: ${roundedDistance} \u0645 | \u0627\u0644\u0646\u0637\u0627\u0642 \u0627\u0644\u0645\u0639\u062a\u0645\u062f: ${roundedRadius} \u0645 | \u0627\u0644\u062f\u0642\u0629: ${roundedAccuracy} \u0645`;
+  }
+
+  if (lang === "en") {
+    return `Detected distance: ${roundedDistance} m | Allowed radius: ${roundedRadius} m | Accuracy: ${roundedAccuracy} m`;
+  }
+
+  return `Distance detectee : ${roundedDistance} m | Rayon autorise : ${roundedRadius} m | Precision : ${roundedAccuracy} m`;
+}
+
+
+function setLocationStatusByKey(lang, key, state = "info") {
+  setLocationStatus(getText(lang, key), state, key);
+}
+
+function setVerifyButtonLabel(lang, key, disabled = false) {
+  if (!verifyLocationBtn) {
+    return;
+  }
+
+  verifyButtonKey = key;
+  verifyButtonDisabled = disabled;
+  verifyLocationBtn.textContent = getText(lang, key);
+  verifyLocationBtn.disabled = disabled;
+}
+
+function openDashboard() {
+  window.location.href = "dashboard.html";
+}
+
+function openClientSelection() {
+  window.location.href = "clients.html";
+}
+
+function openSupportCenter(client = "") {
+  const params = new URLSearchParams();
+  params.set("client", client || getStoredClient());
+  window.location.href = `support-center.html?${params.toString()}`;
+}
+
+function openDocumentViewer(documentPath = "", client = "", section = "quality") {
+  documentSelectionOverride = "";
+  const params = new URLSearchParams();
+  const normalizedSection = normalizeDocumentSection(section);
+
+  if (documentPath) {
+    params.set("doc", documentPath);
+  }
+
+  if (client) {
+    params.set("client", client);
+  }
+
+  params.set("section", normalizedSection);
+
+  window.location.href = `document-viewer.html${params.toString() ? `?${params.toString()}` : ""}`;
+}
+
+function getStoredClient() {
+  return localStorage.getItem(CLIENT_STORAGE_KEY) || "stellantis";
+}
+
+function getSupportEntries() {
+  try {
+    const rawEntries = localStorage.getItem(SUPPORT_STORAGE_KEY);
+    const parsedEntries = JSON.parse(rawEntries || "[]");
+    return Array.isArray(parsedEntries) ? parsedEntries : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSupportEntries(entries) {
+  localStorage.setItem(SUPPORT_STORAGE_KEY, JSON.stringify(entries.slice(0, 120)));
+}
+
+function getSupportCenterConfig() {
+  const params = new URLSearchParams(window.location.search);
+  const client = params.get("client") || getStoredClient();
+  const entries = getSupportEntries()
+    .filter((entry) => entry.client === client)
+    .sort((firstEntry, secondEntry) => {
+      return new Date(secondEntry.createdAt).getTime() - new Date(firstEntry.createdAt).getTime();
+    });
+
+  return {
+    client,
+    entries
+  };
+}
+
+function getSupportTypeLabelKey(type = "message") {
+  if (type === "recommendation") {
+    return "supportTypeRecommendation";
+  }
+
+  if (type === "complaint") {
+    return "supportTypeComplaint";
+  }
+
+  return "supportTypeMessage";
+}
+
+function getSupportPriorityLabelKey(priority = "normal") {
+  if (priority === "urgent") {
+    return "supportPriorityUrgent";
+  }
+
+  if (priority === "high") {
+    return "supportPriorityHigh";
+  }
+
+  return "supportPriorityNormal";
+}
+
+function updateSupportTypeCards(type = "message") {
+  if (supportTypeInputNode) {
+    supportTypeInputNode.value = type;
+  }
+
+  supportTypeCardNodes.forEach((card) => {
+    const isActive = card.dataset.supportType === type;
+    card.classList.toggle("is-active", isActive);
+    card.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
+function updateSupportStatus(lang, key, state = "info") {
+  if (!supportStatusNode) {
+    return;
+  }
+
+  supportStatusKey = key;
+  supportStatusNode.dataset.state = state;
+  supportStatusNode.textContent = getText(lang, key);
+}
+
+function formatSupportDate(value, lang) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const locale = lang === "ar" ? "ar-MA" : lang === "en" ? "en-US" : "fr-MA";
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+87f47e3373d95f8cf5401254af3a948b278872be
 function buildSupportDraft(client) {
   return {
     client,
@@ -395,10 +783,17 @@ function buildSupportDraft(client) {
     area: (supportAreaInputNode && supportAreaInputNode.value.trim()) || "",
     subject: (supportSubjectInputNode && supportSubjectInputNode.value.trim()) || "",
     details: (supportDetailsInputNode && supportDetailsInputNode.value.trim()) || "",
+ HEAD
     createdAt: new Date().toISOString()
   };
 }
 
+
+    createdAt: new Date().toISOString()
+  };
+}
+
+ 87f47e3373d95f8cf5401254af3a948b278872be
 function buildSupportMessage(entry, lang) {
   const lines = [
     `${getText(lang, "supportLabelClient")}: ${getText(lang, getClientTranslationKey(entry.client || "stellantis"))}`,
