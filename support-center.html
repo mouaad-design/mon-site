@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Espace support projet pour envoyer des messages, recommandations et reclamations.">
+  <title>SC Training Platform - Support Projet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="dashboard-page support-page">
+  <div class="hero-bg">
+    <div class="hero-rotator" aria-hidden="true">
+      <div class="hero-slide hero-slide--dashboard-stellantis"></div>
+      <div class="hero-slide hero-slide--dashboard-volvo"></div>
+      <div class="hero-slide hero-slide--dashboard-tesla"></div>
+    </div>
+    <div class="hero-overlay"></div>
+  </div>
+
+  <main class="support-main">
+    <section class="support-shell intro-rise delay-1">
+      <div class="support-top">
+        <div class="support-hero">
+          <div class="support-hero__copy">
+            <p class="support-kicker" data-i18n="supportPageKicker">Support projet</p>
+            <h1 data-i18n="supportPageTitle">Ecrire au responsable</h1>
+            <p class="support-subtitle" data-i18n="supportPageSubtitle">Utilisez cet espace pour laisser un message, une recommandation ou une reclamation claire et structuree.</p>
+          </div>
+        </div>
+
+        <div class="support-chip">
+          <span class="support-chip__label" data-i18n="dashboardClientLabel">Client choisi</span>
+          <strong data-support-client-name>Stellantis</strong>
+        </div>
+      </div>
+
+      <section class="support-panel">
+        <div class="support-panel__head">
+          <div>
+            <p class="support-panel__kicker" data-i18n="supportFormKicker">Nouveau message</p>
+            <h2 data-i18n="supportFormTitle">Canal de communication interne</h2>
+          </div>
+          <p class="support-panel__text" data-i18n="supportFormText">Renseignez les informations utiles. Le message sera sauvegarde localement et vous pourrez le copier facilement.</p>
+        </div>
+
+        <form class="support-form" data-support-form>
+          <input type="hidden" name="supportType" value="message" data-support-type-input>
+
+          <div class="support-types">
+            <button type="button" class="support-type-card is-active" data-support-type-card data-support-type="message">
+              <span class="support-type-card__icon support-type-card__icon--message" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M5 7.5C5 6.4 5.9 5.5 7 5.5H17C18.1 5.5 19 6.4 19 7.5V13.5C19 14.6 18.1 15.5 17 15.5H10.2L6 18.5L6.7 15.5H7C5.9 15.5 5 14.6 5 13.5V7.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="support-type-card__title" data-i18n="supportTypeMessage">Message</span>
+              <span class="support-type-card__text" data-i18n="supportTypeMessageText">Partager une information ou une demande simple.</span>
+            </button>
+            <button type="button" class="support-type-card" data-support-type-card data-support-type="recommendation">
+              <span class="support-type-card__icon support-type-card__icon--recommendation" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 4.5L14.3 9.2L19.5 10L15.8 13.7L16.7 19L12 16.5L7.3 19L8.2 13.7L4.5 10L9.7 9.2L12 4.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="support-type-card__title" data-i18n="supportTypeRecommendation">Recommandation</span>
+              <span class="support-type-card__text" data-i18n="supportTypeRecommendationText">Proposer une amelioration ou une idee utile.</span>
+            </button>
+            <button type="button" class="support-type-card" data-support-type-card data-support-type="complaint">
+              <span class="support-type-card__icon support-type-card__icon--complaint" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 8V12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M12 16H12.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+                  <path d="M10.3 4.9L4.9 14.1C4.1 15.5 5.1 17.2 6.7 17.2H17.3C18.9 17.2 19.9 15.5 19.1 14.1L13.7 4.9C12.9 3.5 11.1 3.5 10.3 4.9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="support-type-card__title" data-i18n="supportTypeComplaint">Reclamation</span>
+              <span class="support-type-card__text" data-i18n="supportTypeComplaintText">Signaler un probleme a traiter rapidement.</span>
+            </button>
+          </div>
+
+          <div class="support-form-grid">
+            <label class="support-field">
+              <span data-i18n="supportFieldPriority">Priorite</span>
+              <select name="priority" data-support-priority-input>
+                <option value="normal" data-i18n="supportPriorityNormal">Normale</option>
+                <option value="high" data-i18n="supportPriorityHigh">Haute</option>
+                <option value="urgent" data-i18n="supportPriorityUrgent">Urgente</option>
+              </select>
+            </label>
+
+            <label class="support-field">
+              <span data-i18n="supportFieldPhone">Telephone ou poste</span>
+              <input type="text" name="senderPhone" data-support-phone-input placeholder="Optionnel">
+            </label>
+
+            <label class="support-field">
+              <span data-i18n="supportFieldArea">Zone ou atelier</span>
+              <input type="text" name="area" data-support-area-input placeholder="Optionnel">
+            </label>
+          </div>
+
+          <label class="support-field">
+            <span data-i18n="supportFieldSubject">Sujet</span>
+            <input type="text" name="subject" data-support-subject-input placeholder="Sujet du message" required>
+          </label>
+
+          <label class="support-field">
+            <span data-i18n="supportFieldDetails">Details</span>
+            <textarea name="details" rows="7" data-support-details-input placeholder="Decrivez votre message, recommandation ou reclamation..." required></textarea>
+          </label>
+
+          <div class="support-form-actions">
+            <button type="submit" class="support-primary-btn" data-i18n="supportActionSave">Enregistrer</button>
+            <button type="button" class="support-secondary-btn" data-support-copy-button data-i18n="supportActionCopy">Copier le message</button>
+          </div>
+
+          <p class="support-status" data-support-status data-i18n="supportStatusIdle">Le message sera sauvegarde localement dans le navigateur.</p>
+        </form>
+      </section>
+
+      <section class="support-history">
+        <div class="support-history__head">
+          <p class="support-panel__kicker" data-i18n="supportHistoryKicker">Historique</p>
+          <h2 data-i18n="supportHistoryTitle">Messages enregistres</h2>
+        </div>
+        <div class="support-history__list" data-support-history></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./translations.js"></script>
+  <script src="./script.js"></script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Tableau de bord professionnel de la plateforme de formation SC.">
+  <title>SC Training Platform - Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+  <body class="dashboard-page">
+    <div class="hero-bg">
+      <div class="hero-rotator" aria-hidden="true">
+      <div class="hero-slide hero-slide--dashboard-stellantis"></div>
+      <div class="hero-slide hero-slide--dashboard-volvo"></div>
+      <div class="hero-slide hero-slide--dashboard-tesla"></div>
+      </div>
+      <div class="hero-overlay"></div>
+  </div>
+
+  <main class="dashboard-main">
+    <section class="dashboard-shell intro-rise delay-1">
+      <div class="dashboard-top">
+        <div class="dashboard-hero">
+          <p class="dashboard-kicker" data-i18n="dashboardKicker">Le departement qualite vous remercie</p>
+          <h1 data-i18n="dashboardTitle">Bienvenue dans votre espace</h1>
+          <p class="dashboard-subtitle" data-i18n="dashboardSubtitle">Un espace simple pour acceder rapidement aux modules de formation, au suivi qualite et aux ressources du projet.</p>
+          <div class="dashboard-client-chip">
+            <span class="dashboard-client-chip__label" data-i18n="dashboardClientLabel">Client choisi</span>
+            <strong class="dashboard-client-chip__value" data-client-name>Stellantis</strong>
+          </div>
+        </div>
+
+        <aside class="dashboard-brand-card">
+          <p class="dashboard-brand-label">Aptiv x Versigent</p>
+          <div class="dashboard-dual-logos" aria-label="Aptiv and Versigent logos">
+            <div class="dashboard-mini-logo">
+              <img src="./assets/aptiv-display.svg" alt="Aptiv">
+            </div>
+            <div class="dashboard-mini-logo">
+        <img src="./assets/versigent-logo.jpg" alt="Versigent">
+            </div>
+          </div>
+        </aside>
+      </div>
+
+        <div class="dashboard-summary">
+          <article class="summary-card summary-card--client">
+            <span class="summary-client-logo">
+          <img src="./assets/stellantis-logo.jpg" alt="Stellantis" data-client-logo>
+            </span>
+          </article>
+          <article class="summary-card">
+          <span class="summary-label" data-i18n="dashboardStandardLabel">Reference qualite</span>
+          <strong class="summary-value" data-i18n="dashboardStandardValue">IATF 16949 / Caracteristiques speciales</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-section reveal-section">
+      <div class="info-header">
+        <h3 data-i18n="dashboardSectionTitle">Modules disponibles</h3>
+      </div>
+
+      <div class="dashboard-group-head">
+        <span class="dashboard-group-line"></span>
+        <p class="dashboard-group-label" data-i18n="dashboardPrimaryTitle">Modules prioritaires</p>
+      </div>
+
+      <div class="dashboard-primary-grid">
+        <article class="dashboard-card dashboard-card--primary reveal-section">
+          <div class="dashboard-card-icon dashboard-card-icon--blue" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4.5 6.5C4.5 5.4 5.4 4.5 6.5 4.5H11.5C12.4 4.5 13.2 5 13.6 5.8C14 5 14.8 4.5 15.7 4.5H17.5C18.6 4.5 19.5 5.4 19.5 6.5V18.5C19.5 19 19.1 19.4 18.6 19.4C17.5 19.4 16.4 19.1 15.5 18.6L13.6 17.5L11.7 18.6C10.8 19.1 9.7 19.4 8.6 19.4C8.1 19.4 7.7 19 7.7 18.5V6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h4 data-i18n="dashboardCard1Title">Formation SC</h4>
+          <p data-i18n="dashboardCard1Text">Acceder aux contenus essentiels sur les caracteristiques speciales et les exigences de pilotage.</p>
+          <button type="button" class="dashboard-card-btn" data-doc-action data-doc-section="training" data-i18n="dashboardCardAction">Ouvrir</button>
+        </article>
+
+        <article class="dashboard-card dashboard-card--primary reveal-section">
+          <div class="dashboard-card-icon dashboard-card-icon--green" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 16.5V16.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M9.7 9.4C9.7 8 10.8 7 12.2 7C13.6 7 14.7 8 14.7 9.3C14.7 10.1 14.3 10.7 13.5 11.2C12.7 11.7 12.2 12.1 12.2 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </div>
+          <h4 data-i18n="dashboardCard3Title">Tutoriels</h4>
+          <p data-i18n="dashboardCard3Text">Retrouver les explications pas a pas pour les bonnes pratiques qualite et les standards atelier.</p>
+          <button type="button" class="dashboard-card-btn" data-doc-action data-doc-section="tutorials" data-i18n="dashboardCardAction">Ouvrir</button>
+        </article>
+
+        <article class="dashboard-card dashboard-card--primary reveal-section">
+          <div class="dashboard-card-icon dashboard-card-icon--purple" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 4L4.5 8L12 12L19.5 8L12 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M4.5 12.5L12 16.5L19.5 12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4.5 17L12 21L19.5 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h4 data-i18n="dashboardCard2Title">Quiz & evaluation</h4>
+          <p data-i18n="dashboardCard2Text">Verifier la comprehension avec un parcours d'evaluation simple, rapide et structure.</p>
+          <button type="button" class="dashboard-card-btn" data-doc-action data-doc-section="quiz" data-doc-locked="true" data-i18n="dashboardCardAction" disabled aria-disabled="true">Ouvrir</button>
+        </article>
+      </div>
+
+      <div class="dashboard-group-head dashboard-group-head--secondary">
+        <span class="dashboard-group-line"></span>
+        <p class="dashboard-group-label" data-i18n="dashboardSecondaryTitle">Ressources et support</p>
+      </div>
+
+      <div class="dashboard-secondary-grid">
+        <article class="dashboard-card dashboard-card--secondary dashboard-card--docs reveal-section">
+          <div class="dashboard-card-icon dashboard-card-icon--orange dashboard-card-icon--docs" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 4.5H14L18.5 9V18C18.5 19.1 17.6 20 16.5 20H8C6.9 20 6 19.1 6 18V6.5C6 5.4 6.9 4.5 8 4.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M13.5 4.5V9H18" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M8.8 13H15.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M8.8 16H13.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h4 data-i18n="dashboardCard4Title">Documents qualite</h4>
+          <p data-i18n="dashboardCard4Text" data-doc-text>Centraliser procedures, supports de formation et references utiles au projet.</p>
+          <button type="button" class="dashboard-card-btn" data-doc-action data-doc-section="quality" data-i18n="dashboardCardAction">Ouvrir</button>
+        </article>
+
+        <article class="dashboard-card dashboard-card--secondary reveal-section">
+          <div class="dashboard-card-icon dashboard-card-icon--red" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 17V9.8C7 8.1 8.3 6.7 10 6.5V6.5C10.5 4.8 12.1 3.5 14 3.5C16.3 3.5 18.1 5.4 18.1 7.7V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5.5 17H18.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M10 20C10.5 20.8 11.2 21.2 12 21.2C12.8 21.2 13.5 20.8 14 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h4 data-i18n="dashboardCard6Title">Support projet</h4>
+          <p data-i18n="dashboardCard6Text">Disposer d'un point d'entree propre pour la communication, l'accompagnement et les prochaines etapes.</p>
+          <button type="button" class="dashboard-card-btn" data-support-action data-i18n="dashboardCardAction">Ouvrir</button>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer site-footer--dashboard reveal-section">
+    <p class="footer-title" data-i18n="footer">Aptiv Versigent - SC Training Platform 2026</p>
+    <p class="footer-subtitle" data-i18n="dashboardFooterSubtitle">Interface de pilotage formation et qualite pour un usage simple, lisible et professionnel.</p>
+  </footer>
+
+  <script src="./translations.js"></script>
+  <script src="./script.js"></script>
+</body>
+</html>
