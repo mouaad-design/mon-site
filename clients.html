@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Selection du client avant l'acces au dashboard de formation SC.">
+  <title>SC Training Platform - Clients</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="client-select-page">
+  <div class="hero-bg">
+    <div class="hero-rotator" aria-hidden="true">
+      <div class="hero-slide hero-slide--home-aptiv-person"></div>
+      <div class="hero-slide hero-slide--home-versigent"></div>
+    </div>
+    <div class="hero-overlay"></div>
+  </div>
+
+  <main class="client-select-main">
+    <section class="client-select-shell intro-rise delay-1">
+      <p class="client-select-kicker" data-i18n="clientSelectKicker">Choix du client</p>
+      <h1 data-i18n="clientSelectTitle">Selectionnez votre client</h1>
+        <p class="client-select-subtitle" data-i18n="clientSelectSubtitle">
+          Choisissez le client pour ouvrir le tableau de bord correspondant.
+        </p>
+
+      <div class="client-grid">
+        <button type="button" class="client-card reveal-section" data-client="stellantis">
+          <span class="client-card__logo">
+            <img src="assets/stelllantis%20logo.jpg" alt="Stellantis">
+          </span>
+          <strong class="client-card__title" data-i18n="clientStellantis">Stellantis</strong>
+          <span class="client-card__text" data-i18n="clientOpen">Ouvrir cet espace</span>
+        </button>
+
+        <button type="button" class="client-card reveal-section" data-client="volvo">
+          <span class="client-card__logo">
+            <img src="assets/volvo%20logo.jpg" alt="Volvo">
+          </span>
+          <strong class="client-card__title" data-i18n="clientVolvo">Volvo</strong>
+          <span class="client-card__text" data-i18n="clientOpen">Ouvrir cet espace</span>
+        </button>
+
+        <button type="button" class="client-card reveal-section" data-client="tesla">
+          <span class="client-card__logo">
+            <img src="assets/Tesla%20logo.png" alt="Tesla">
+          </span>
+          <strong class="client-card__title" data-i18n="clientTesla">Tesla</strong>
+          <span class="client-card__text" data-i18n="clientOpen">Ouvrir cet espace</span>
+        </button>
+      </div>
+
+      <p class="client-select-note" data-i18n="clientSelectNote">
+        Le departement qualite vous souhaite la bienvenue.
+      </p>
+    </section>
+  </main>
+
+  <script src="translations.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
