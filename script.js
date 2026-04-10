@@ -992,7 +992,7 @@ function getClientLogoPath(client) {
       return "./assets/tesla-logo.png";
   }
 
-    return "./assets/stellantis-logo.jpg";
+  return "./assets/stellantis-logo-wide.jpg";
 }
 
 function updateDashboardClientTheme(client) {
