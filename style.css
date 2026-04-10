@@ -2768,8 +2768,14 @@ body.motion-ready .reveal-section.is-visible {
   .summary-client-logo img {
     height: 92px;
     object-fit: contain;
-    padding: 10px 14px;
+    padding: 6px 10px;
     background: #ffffff;
+  }
+
+  .summary-client-logo img.client-logo--tesla {
+    object-fit: contain;
+    padding: 6px 10px;
+    background: #040404;
   }
 
   .dashboard-primary-grid,
