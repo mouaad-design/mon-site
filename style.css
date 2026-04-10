@@ -2934,9 +2934,9 @@ body.motion-ready .reveal-section.is-visible {
 
   .client-card__logo img {
     height: 88px;
-    object-fit: contain;
-    padding: 10px 14px;
-    background: #ffffff;
+    object-fit: cover;
+    padding: 0;
+    background: transparent;
   }
 
   .dashboard-dual-logos {
