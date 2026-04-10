@@ -2957,6 +2957,8 @@ body.motion-ready .reveal-section.is-visible {
   }
 
   .dashboard-dual-logos {
+    width: 100%;
+    max-width: none;
     gap: 6px;
     padding: 0;
   }
@@ -2967,12 +2969,24 @@ body.motion-ready .reveal-section.is-visible {
   }
 
   .dashboard-mini-logo {
-    padding: 8px;
+    min-height: 60px;
+    padding: 10px 8px;
     border-radius: 14px;
+    background: rgba(6, 10, 18, 0.96);
   }
 
   .dashboard-mini-logo img {
-    height: 44px;
+    height: 50px;
+  }
+
+  .dashboard-brand-card {
+    padding: 14px 12px;
+  }
+
+  .dashboard-brand-label {
+    margin-bottom: 8px;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
   }
 
   .dashboard-card-icon {
