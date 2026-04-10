@@ -2781,6 +2781,14 @@ body.motion-ready .reveal-section.is-visible {
     transform: none;
   }
 
+  .summary-client-logo img.client-logo--stellantis {
+    object-fit: cover;
+    object-position: center center;
+    padding: 0;
+    background: #31459b;
+    transform: none;
+  }
+
   .dashboard-primary-grid,
   .dashboard-secondary-grid {
     gap: 14px;
