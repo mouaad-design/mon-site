@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Consultation des documents qualite du projet SC Training.">
+  <title>SC Training Platform - Document</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="dashboard-page document-viewer-page">
+  <div class="hero-bg">
+    <div class="hero-rotator" aria-hidden="true">
+      <div class="hero-slide hero-slide--dashboard-stellantis"></div>
+      <div class="hero-slide hero-slide--dashboard-volvo"></div>
+      <div class="hero-slide hero-slide--dashboard-tesla"></div>
+    </div>
+    <div class="hero-overlay"></div>
+  </div>
+
+  <main class="document-viewer-main">
+    <section class="document-viewer-shell intro-rise delay-1">
+      <div class="document-viewer-top">
+        <div>
+          <p class="document-viewer-kicker" data-doc-page-kicker>Stellantis</p>
+          <h1 data-doc-page-title>Documents qualite</h1>
+          <p class="document-viewer-section-name" data-doc-section-name>Documents qualite</p>
+        </div>
+
+        <div class="document-viewer-chip">
+          <span class="document-viewer-chip__label" data-i18n="dashboardClientLabel">Client</span>
+          <strong data-doc-client-name>Stellantis</strong>
+        </div>
+      </div>
+
+      <div class="document-viewer-library">
+        <div class="document-viewer-library__head">
+          <div class="document-viewer-library__meta">
+            <p class="document-viewer-library__title" data-i18n="documentPageListTitle">Documents enregistres</p>
+          </div>
+          <div class="document-viewer-upload">
+            <button type="button" class="document-viewer-upload__action document-viewer-upload__action--secondary" data-doc-fullscreen-button data-i18n="documentPageFullscreen" disabled>Plein ecran</button>
+          </div>
+        </div>
+
+        <div class="document-viewer-docs" data-doc-list></div>
+      </div>
+
+      <p class="document-viewer-empty" data-doc-status data-i18n="documentPageUnavailable" hidden>Aucun document n'est encore disponible pour ce client.</p>
+
+      <div class="document-viewer-frame-wrap" data-doc-frame-wrap hidden>
+        <button type="button" class="document-viewer-close-preview" data-doc-close-preview hidden>Fermer</button>
+        <div class="document-viewer-pager" data-doc-pager hidden>
+          <button type="button" class="document-viewer-pager__btn" data-doc-page-prev data-i18n="documentPagePrevious">Precedent</button>
+          <button type="button" class="document-viewer-pager__btn document-viewer-pager__btn--icon" data-doc-zoom-out aria-label="Zoom out">-</button>
+          <button type="button" class="document-viewer-pager__btn document-viewer-pager__btn--label" data-doc-zoom-reset>100%</button>
+          <button type="button" class="document-viewer-pager__btn document-viewer-pager__btn--icon" data-doc-zoom-in aria-label="Zoom in">+</button>
+          <span class="document-viewer-pager__label" data-doc-page-label>1 / 1</span>
+          <button type="button" class="document-viewer-pager__btn" data-doc-page-next data-i18n="documentPageNext">Suivant</button>
+        </div>
+        <iframe
+          class="document-viewer-frame"
+          data-doc-frame
+          title="Document qualite"
+          loading="lazy"
+          hidden>
+        </iframe>
+        <div class="document-viewer-pdf" data-doc-pdf hidden></div>
+        <video
+          class="document-viewer-video"
+          data-doc-video
+          controls
+          controlsList="nodownload noplaybackrate"
+          disablePictureInPicture
+          playsinline
+          hidden>
+        </video>
+      </div>
+    </section>
+  </main>
+
+  <script src="./translations.js"></script>
+  <script src="./script.js"></script>
+</body>
+</html>

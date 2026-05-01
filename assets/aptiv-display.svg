@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-labelledby="title desc">
+  <title id="title">Aptiv logo display</title>
+  <desc id="desc">Dark futuristic Aptiv logo panel with orange dots</desc>
+  <defs>
+    <radialGradient id="core" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#071018"/>
+      <stop offset="72%" stop-color="#03080d"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#143241"/>
+      <stop offset="55%" stop-color="#05131b"/>
+      <stop offset="100%" stop-color="#112f3f"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="720" height="260" rx="28" fill="#04080c"/>
+  <circle cx="360" cy="130" r="118" fill="url(#core)"/>
+  <circle cx="360" cy="130" r="152" fill="none" stroke="url(#rim)" stroke-width="20" opacity=".9"/>
+  <circle cx="360" cy="130" r="170" fill="none" stroke="#0a2430" stroke-width="4" opacity=".7"/>
+
+  <g opacity=".8" stroke="#2bc2c7" stroke-width="6">
+    <path d="M84 60v26"/>
+    <path d="M110 46v20"/>
+    <path d="M96 182v28"/>
+    <path d="M606 44v22"/>
+    <path d="M626 56v28"/>
+    <path d="M616 178v26"/>
+  </g>
+
+  <g opacity=".5" stroke="#183847" stroke-width="3">
+    <path d="M60 88 118 120"/>
+    <path d="M64 172 130 138"/>
+    <path d="M590 122 654 86"/>
+    <path d="M594 138 660 176"/>
+  </g>
+
+  <circle cx="96" cy="130" r="16" fill="#ff5a2b"/>
+  <circle cx="624" cy="130" r="16" fill="#ff5a2b"/>
+
+  <g fill="#ffffff" font-family="Arial Black, Arial, sans-serif" font-size="92" letter-spacing="28">
+    <text x="136" y="160">APTIV</text>
+  </g>
+</svg>

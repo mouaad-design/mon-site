@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Plateforme professionnelle de formation en caracteristiques speciales avec page d'accueil moderne, logos partenaires et acces utilisateur.">
+  <title>Special Characteristics Training Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css?v=20260420-home-title">
+</head>
+<body class="home-page">
+  <div class="hero-bg">
+    <div class="hero-rotator" aria-hidden="true">
+      <div class="hero-slide hero-slide--cablage"></div>
+      <div class="hero-slide hero-slide--home-versigent"></div>
+      <div class="hero-slide hero-slide--home-aptiv-person"></div>
+    </div>
+    <div class="hero-overlay"></div>
+  </div>
+
+  <header class="topbar topbar--home">
+    <div class="topbar-branding">
+      <div class="iatf-badge">
+        <img src="./assets/iatf-logo.jpg" alt="IATF logo">
+      </div>
+
+      <div class="zero-defects-badge">
+        <img src="./assets/zero-defects.jpeg" alt="Zero Defects">
+      </div>
+    </div>
+
+    <div class="lang-switcher" aria-label="Language selector">
+      <button type="button" class="lang-btn active" data-lang="fr">FR <span>FR</span></button>
+      <button type="button" class="lang-btn" data-lang="en">EN <span>GB</span></button>
+      <button type="button" class="lang-btn" data-lang="ar">AR <span>MA</span></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero-panel">
+      <div class="welcome-banner intro-rise delay-1">
+        <p class="welcome-kicker" data-i18n="welcomeKicker">Plateforme Versigent Kenitra</p>
+        <h2 data-i18n="welcome">Bienvenue</h2>
+      </div>
+
+      <div class="login-card intro-rise delay-3">
+        <h1 data-i18n="title">Special Characteristics Training</h1>
+        <div class="gps-card">
+          <div class="gps-card__head">
+            <div class="gps-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+                <defs>
+                  <linearGradient id="gpsPinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ff9a6a"></stop>
+                    <stop offset="100%" stop-color="#ea6f4d"></stop>
+                  </linearGradient>
+                </defs>
+                <path fill="url(#gpsPinGradient)" d="M32 6c-10.493 0-19 8.507-19 19 0 13.301 16.22 29.53 18.062 31.346a1.33 1.33 0 0 0 1.876 0C34.78 54.53 51 38.301 51 25c0-10.493-8.507-19-19-19Zm0 27a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"></path>
+                <circle cx="32" cy="25" r="5.4" fill="#fff"></circle>
+              </svg>
+            </div>
+
+            <div class="gps-card__content">
+              <p class="gps-card__label" data-i18n="locationKicker">Verification GPS</p>
+              <h3 class="gps-card__title" data-i18n="locationTitle">Verification de localisation requise</h3>
+            </div>
+          </div>
+
+          <p class="gps-card__text" data-i18n="locationText">
+            Autorisez la localisation pour verifier que vous etes bien dans la zone Aptiv Kenitra avant d'acceder au site.
+          </p>
+
+          <div class="gps-card__meta">
+            <span data-i18n="locationRadius">Rayon autorise : 150 metres</span>
+          </div>
+
+          <button id="verifyLocationBtn" type="button" class="login-btn" data-i18n="locationButton">Verifier ma localisation</button>
+          <button id="testAccessBtn" type="button" class="test-access-btn" data-i18n="testAccessButton">Acceder en mode test</button>
+          <p id="locationStatus" class="gps-inline-status" data-state="info" aria-live="polite"></p>
+          <p id="locationDetail" class="gps-detail-status" aria-live="polite"></p>
+        </div>
+
+        <div class="card-meta">
+          <p class="credit-line" data-i18n="creditAuthor">realise par departement Qualite</p>
+          <p class="credit-line muted" data-i18n="creditSupervisor">Versigent Kenitra</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="info-section reveal-section">
+      <div class="info-header reveal-section">
+        <h3 data-i18n="infoTitle">References et environnement qualite</h3>
+      </div>
+
+      <div class="info-grid">
+        <article class="info-card reveal-section">
+          <h4>Aptiv</h4>
+          <p data-i18n="aptivText">
+            Le groupe Aptiv est un leader mondial dans le domaine des technologies automobiles avancees. L'entreprise concoit et developpe des solutions innovantes visant a ameliorer la securite, la connectivite et les performances des vehicules. Grace a son expertise technologique, Aptiv accompagne les constructeurs automobiles dans la transition vers une mobilite plus intelligente et plus durable.
+          </p>
+        </article>
+
+        <article class="info-card reveal-section">
+          <h4>Stellantis</h4>
+          <p data-i18n="stellantisText">
+            Le groupe Stellantis est l'un des principaux acteurs mondiaux de l'industrie automobile, reconnu pour son innovation et son engagement envers la qualite. Dans le cadre du projet Peugeot 3008, Stellantis met en oeuvre des standards eleves en matiere de performance, de fiabilite et d'amelioration continue, afin de repondre aux exigences du marche et garantir la satisfaction client.
+          </p>
+        </article>
+
+        <article class="info-card reveal-section">
+          <h4>Versigent</h4>
+          <p data-i18n="versigentText">
+            Versigent est une entreprise specialisee dans les services industriels et l'ingenierie, offrant des solutions adaptees aux besoins des environnements de production. Elle intervient dans l'optimisation des processus, l'amelioration continue et la gestion de la qualite. Grace a une approche structuree et orientee performance, Versigent accompagne ses partenaires dans l'atteinte de leurs objectifs operationnels. Son expertise permet egalement de renforcer la fiabilite des systemes industriels et d'assurer une meilleure maitrise des risques au sein des organisations.
+          </p>
+        </article>
+
+        <article class="info-card reveal-section">
+          <h4>IATF 16949</h4>
+          <p data-i18n="iatfText">
+            La norme IATF 16949 constitue une reference internationale incontournable pour le management de la qualite dans l'industrie automobile. Elle vise a standardiser les pratiques, reduire les risques et ameliorer la satisfaction client. Son application permet d'assurer des processus robustes et une production conforme aux exigences du secteur.
+          </p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer reveal-section">
+    <p class="footer-title" data-i18n="footer">Aptiv Versigent - Special Characteristics Training Platform 2026</p>
+    <p class="footer-subtitle" data-i18n="footerSubtitle">Plateforme professionnelle de formation, qualite et excellence operationnelle.</p>
+  </footer>
+
+  <script src="./translations.js?v=20260420-home-title"></script>
+  <script src="./script.js?v=20260420-home-title"></script>
+</body>
+</html>

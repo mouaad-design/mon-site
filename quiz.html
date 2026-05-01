@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Quiz professionnel Stellantis sur les caracteristiques speciales.">
+  <title>SC Training Platform - Quiz Special Characteristics Stellantis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./quiz.css">
+</head>
+<body class="quiz-page">
+  <div class="hero-bg">
+    <div class="hero-rotator" aria-hidden="true">
+      <div class="hero-slide hero-slide--dashboard-stellantis"></div>
+    </div>
+    <div class="hero-overlay"></div>
+  </div>
+
+  <main class="quiz-entry-main">
+    <section class="quiz-entry-shell">
+      <div class="quiz-entry-top">
+        <div class="quiz-client-chip">
+          <span id="quizClientLabel">Client selectionne</span>
+          <strong id="quizClientValue">Stellantis</strong>
+        </div>
+
+        <div class="quiz-title-block">
+          <p class="quiz-title-kicker" id="quizTitleKicker">STELLANTIS</p>
+          <h1 id="quizPageTitle">Quiz Special Characteristics</h1>
+          <p id="quizPageSubtitle">Chaque session propose 10 questions aleatoires a partir d'une banque de 50 questions.</p>
+        </div>
+      </div>
+
+      <section class="quiz-start-panel" id="quizStartPanel">
+        <div class="quiz-start-copy">
+          <span id="quizModeLabel">Mode d'evaluation</span>
+          <h2 id="quizStartTitle">Commencer une nouvelle session</h2>
+          <p id="quizStartText">Le systeme choisit automatiquement 10 questions differentes a chaque lancement pour renforcer la memorisation et la rigueur qualite.</p>
+        </div>
+
+        <div class="quiz-start-status" id="quizReadyState">Banque de questions prete.</div>
+
+        <div class="quiz-start-actions">
+          <a class="quiz-secondary-link" href="./dashboard.html" id="quizBackAction">Retour au dashboard</a>
+          <button type="button" class="quiz-primary-btn" id="quizStartBtn">Demarrer le quiz</button>
+        </div>
+      </section>
+
+      <section class="quiz-run-panel hidden" id="quizRunPanel">
+        <div class="quiz-run-top">
+          <div>
+            <p class="quiz-run-kicker" id="quizRunKicker">Evaluation en cours</p>
+            <h2 class="quiz-run-title" id="quizRunTitle">Question 1 sur 10</h2>
+          </div>
+          <div class="quiz-run-badge" id="quizSectionBadge">Partie 1 : Generalites</div>
+        </div>
+
+        <div class="quiz-progress-track">
+          <div class="quiz-progress-bar" id="quizProgressBar"></div>
+        </div>
+
+        <p class="quiz-run-question" id="quizQuestionText">Question</p>
+        <div class="quiz-run-options" id="quizOptions"></div>
+        <p class="quiz-inline-message" id="quizInlineMessage"></p>
+
+        <div class="quiz-run-actions">
+          <button type="button" class="quiz-nav-btn quiz-nav-btn--soft" id="quizPrevBtn">Precedent</button>
+          <button type="button" class="quiz-nav-btn" id="quizNextBtn">Suivant</button>
+          <button type="button" class="quiz-nav-btn quiz-nav-btn--accent hidden" id="quizSubmitBtn">Afficher le resultat</button>
+        </div>
+      </section>
+
+      <section class="quiz-result-panel hidden" id="quizResultPanel">
+        <div class="quiz-result-head">
+          <div class="quiz-result-copy">
+            <p class="quiz-result-kicker" id="quizResultKicker">Resultat final</p>
+            <h2 id="quizResultTitle">Evaluation terminee</h2>
+            <p class="quiz-result-message" id="quizResultMessage"></p>
+          </div>
+          <div class="quiz-result-hero-score">
+            <span id="quizScoreLabel">Score global</span>
+            <strong class="quiz-result-score" id="quizResultScore">0 / 10</strong>
+          </div>
+        </div>
+
+        <div class="quiz-result-dashboard">
+          <article class="quiz-result-card">
+            <span id="quizRateLabel">Taux de reussite</span>
+            <strong id="quizResultRate">0%</strong>
+          </article>
+          <article class="quiz-result-card">
+            <span id="quizAnsweredLabel">Reponses corrigees</span>
+            <strong id="quizResultAnswered">0</strong>
+          </article>
+          <article class="quiz-result-card quiz-result-card--status" id="quizResultStatusCard">
+            <span id="quizLevelLabel">Niveau</span>
+            <strong id="quizResultLevel">-</strong>
+          </article>
+        </div>
+
+        <div class="quiz-result-note" id="quizResultNote">
+          Tableau de synthese de votre session.
+        </div>
+
+        <div class="quiz-start-actions">
+          <a class="quiz-secondary-link" href="./dashboard.html" id="quizResultBack">Retour au dashboard</a>
+          <button type="button" class="quiz-primary-btn" id="quizRestartBtn">Recommencer</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="site-footer site-footer--quiz">
+    <p class="footer-title" id="quizFooterTitle">Aptiv Versigent - Quiz SC Stellantis 2026</p>
+    <p class="footer-subtitle" id="quizFooterSubtitle">Evaluation professionnelle multilingue dediee aux Special Characteristics.</p>
+  </footer>
+
+  <script src="./quiz.js"></script>
+</body>
+</html>
