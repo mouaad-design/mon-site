@@ -19,7 +19,9 @@ const clientCardNodes = document.querySelectorAll("[data-client]");
 const clientNameNodes = document.querySelectorAll("[data-client-name]");
 const clientLogoNodes = document.querySelectorAll("[data-client-logo]");
 const documentActionNodes = document.querySelectorAll("[data-doc-action]");
+const quizActionNodes = document.querySelectorAll("[data-quiz-action]");
 const supportActionNodes = document.querySelectorAll("[data-support-action]");
+const dashboardContentNode = document.querySelector("[data-dashboard-content]");
 const documentFrameNode = document.querySelector("[data-doc-frame]");
 const documentPdfNode = document.querySelector("[data-doc-pdf]");
 const documentVideoNode = document.querySelector("[data-doc-video]");
@@ -41,6 +43,7 @@ const documentClosePreviewNode = document.querySelector("[data-doc-close-preview
 const documentStatusNodes = document.querySelectorAll("[data-doc-status]");
 const supportClientNameNode = document.querySelector("[data-support-client-name]");
 const supportLineStepNode = document.querySelector(".support-line-step");
+const supportUnavailableNode = document.querySelector("[data-support-unavailable]");
 const supportLineSelectNode = document.querySelector("[data-support-line-select]");
 const supportLineInputNode = document.querySelector("[data-support-line-input]");
 const supportLineStatusNode = document.querySelector("[data-support-line-status]");
@@ -126,7 +129,9 @@ const documentLibraries = {
           "./documents/stellantis/presentation-operateur/Diapositive13.PNG",
           "./documents/stellantis/presentation-operateur/Diapositive14.PNG",
           "./documents/stellantis/presentation-operateur/Diapositive15.PNG",
-          "./documents/stellantis/presentation-operateur/Diapositive16.PNG"
+          "./documents/stellantis/presentation-operateur/Diapositive16.PNG",
+          "./documents/stellantis/presentation-operateur/Diapositive17.PNG",
+          "./documents/stellantis/presentation-operateur/Diapositive18.PNG"
         ]
       }
     ],
@@ -1352,7 +1357,8 @@ function updateDocumentViewer(lang) {
   }
 
   if (documentSectionNameNode) {
-    documentSectionNameNode.textContent = translatedSectionName;
+    documentSectionNameNode.textContent = "";
+    documentSectionNameNode.hidden = true;
   }
 
   if (documentListNode) {
@@ -1642,6 +1648,10 @@ function getClientLogoPath(client) {
   return "./assets/stellantis-logo-wide.jpg";
 }
 
+function hasStellantisProjectContent(client) {
+  return client === "stellantis";
+}
+
 function updateDashboardClientTheme(client) {
   if (!document.body.classList.contains("dashboard-page")) {
     return;
@@ -1656,10 +1666,35 @@ function updateDashboardClientTheme(client) {
   document.body.classList.add(`dashboard-client--${client}`);
 }
 
+function updateDashboardAvailability(client = "stellantis") {
+  if (!dashboardContentNode) {
+    return;
+  }
+
+  dashboardContentNode.hidden = false;
+
+  const isAvailable = hasStellantisProjectContent(client);
+
+  quizActionNodes.forEach((link) => {
+    const defaultHref = link.dataset.defaultHref || link.getAttribute("href") || "./quiz.html";
+    link.dataset.defaultHref = defaultHref;
+    link.classList.toggle("is-disabled", !isAvailable);
+    link.setAttribute("aria-disabled", isAvailable ? "false" : "true");
+    link.tabIndex = isAvailable ? 0 : -1;
+    link.href = isAvailable ? `./quiz.html?client=${client}` : "#";
+  });
+
+  supportActionNodes.forEach((button) => {
+    button.disabled = !isAvailable;
+    button.setAttribute("aria-disabled", isAvailable ? "false" : "true");
+  });
+}
+
 function updateStoredClient(lang) {
   if (!clientNameNodes.length && !clientLogoNodes.length) {
     const storedClientOnly = getStoredClient();
     updateDashboardClientTheme(storedClientOnly);
+    updateDashboardAvailability(storedClientOnly);
     updateDocumentActions(storedClientOnly);
     return;
   }
@@ -1668,6 +1703,7 @@ function updateStoredClient(lang) {
   const translatedName = getText(lang, getClientTranslationKey(storedClient));
   const logoPath = getClientLogoPath(storedClient);
   updateDashboardClientTheme(storedClient);
+  updateDashboardAvailability(storedClient);
   updateDocumentActions(storedClient);
 
   clientNameNodes.forEach((node) => {

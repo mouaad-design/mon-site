@@ -21,6 +21,8 @@
 
   <main class="quiz-entry-main">
     <section class="quiz-entry-shell">
+      <a class="quiz-secondary-link quiz-secondary-link--top" href="./dashboard.html" id="quizBackAction">Retour au dashboard</a>
+
       <div class="quiz-entry-top">
         <div class="quiz-client-chip">
           <span id="quizClientLabel">Client selectionne</span>
@@ -34,6 +36,14 @@
         </div>
       </div>
 
+      <section class="quiz-start-panel hidden" id="quizUnavailablePanel">
+        <div class="quiz-start-copy">
+          <span id="quizUnavailableKicker">Disponibilite</span>
+          <h2 id="quizUnavailableTitle">Contenu reserve a Stellantis</h2>
+          <p id="quizUnavailableText">Le quiz des caracteristiques speciales est actuellement disponible uniquement pour Stellantis.</p>
+        </div>
+      </section>
+
       <section class="quiz-start-panel" id="quizStartPanel">
         <div class="quiz-start-copy">
           <span id="quizModeLabel">Mode d'evaluation</span>
@@ -44,7 +54,6 @@
         <div class="quiz-start-status" id="quizReadyState">Banque de questions prete.</div>
 
         <div class="quiz-start-actions">
-          <a class="quiz-secondary-link" href="./dashboard.html" id="quizBackAction">Retour au dashboard</a>
           <button type="button" class="quiz-primary-btn" id="quizStartBtn">Demarrer le quiz</button>
         </div>
       </section>

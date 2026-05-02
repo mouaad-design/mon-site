@@ -33,11 +33,22 @@
   box-shadow: 0 12px 30px rgba(45, 78, 104, 0.1);
 }
 
+.quiz-secondary-link--top {
+  position: absolute;
+  top: 26px;
+  left: 26px;
+  z-index: 2;
+  display: flex;
+  width: fit-content;
+  margin: 0;
+}
+
 .quiz-entry-main {
   min-height: calc(100vh - 86px);
 }
 
 .quiz-entry-shell {
+  position: relative;
   margin: 10px 0 18px;
   padding: 26px;
   border-radius: 40px;
@@ -511,5 +522,11 @@ body.rtl .quiz-run-actions {
   .quiz-nav-btn,
   .quiz-back-link {
     width: 100%;
+  }
+
+  .quiz-secondary-link--top {
+    top: 18px;
+    left: 18px;
+    width: auto;
   }
 }
