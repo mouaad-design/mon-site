@@ -77,9 +77,30 @@
           </div>
 
           <button id="verifyLocationBtn" type="button" class="login-btn" data-i18n="locationButton">Verifier ma localisation</button>
-          <button id="testAccessBtn" type="button" class="test-access-btn" data-i18n="testAccessButton">Acceder en mode test</button>
+          <button id="adminLoginBtn" type="button" class="admin-login-trigger" data-i18n="adminLoginButton">Connexion admin</button>
           <p id="locationStatus" class="gps-inline-status" data-state="info" aria-live="polite"></p>
           <p id="locationDetail" class="gps-detail-status" aria-live="polite"></p>
+        </div>
+
+        <div class="admin-login-modal" id="adminLoginModal" hidden>
+          <div class="admin-login-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="adminLoginTitle">
+            <button type="button" class="admin-login-modal__close" id="adminLoginClose" aria-label="Close">×</button>
+            <h3 id="adminLoginTitle" data-i18n="adminLoginTitle">Connexion administrateur</h3>
+            <p class="admin-login-modal__text" data-i18n="adminLoginText">Entrez le mot de passe administrateur pour activer les fonctions de gestion.</p>
+
+            <form id="adminLoginForm" class="admin-login-form">
+              <label class="admin-login-field">
+                <span data-i18n="adminPasswordLabel">Mot de passe</span>
+                <input id="adminPasswordInput" type="password" autocomplete="current-password" inputmode="text">
+              </label>
+
+              <div class="admin-login-actions">
+                <button type="submit" class="login-btn admin-login-submit" data-i18n="adminLoginSubmit">Se connecter</button>
+              </div>
+
+              <p id="adminLoginStatus" class="admin-login-status" aria-live="polite"></p>
+            </form>
+          </div>
         </div>
 
         <div class="card-meta">

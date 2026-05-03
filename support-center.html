@@ -83,7 +83,17 @@
       </section>
 
       <div class="support-content" data-support-content aria-hidden="true">
-        <section class="support-panel">
+        <section class="support-panel support-panel--viewer" data-support-viewer-panel hidden>
+          <div class="support-panel__head">
+            <div>
+              <p class="support-panel__kicker" data-i18n="supportViewerKicker">Mode lecture</p>
+              <h2 data-i18n="supportViewerTitle">Acces Viewer actif</h2>
+            </div>
+            <p class="support-panel__text" data-i18n="supportViewerText">Les utilisateurs Viewer peuvent consulter l'historique mais ne peuvent pas envoyer ni supprimer de message.</p>
+          </div>
+        </section>
+
+        <section class="support-panel" data-support-admin-panel>
           <div class="support-panel__head">
             <div>
               <p class="support-panel__kicker" data-i18n="supportFormKicker">Nouveau message</p>
@@ -128,7 +138,7 @@
               </button>
             </div>
 
-            <div class="support-form-grid">
+            <div class="support-form-grid support-form-grid--priority-subject">
               <label class="support-field">
                 <span data-i18n="supportFieldPriority">Priorite</span>
                 <select name="priority" data-support-priority-input>
@@ -139,15 +149,10 @@
               </label>
 
               <label class="support-field">
-                <span data-i18n="supportFieldPhone">Poste ou etape</span>
-                <input type="text" name="senderPhone" data-support-phone-input placeholder="Optionnel">
+                <span data-i18n="supportFieldSubject">Sujet</span>
+                <input type="text" name="subject" data-support-subject-input placeholder="Sujet du message" required>
               </label>
             </div>
-
-            <label class="support-field">
-              <span data-i18n="supportFieldSubject">Sujet</span>
-              <input type="text" name="subject" data-support-subject-input placeholder="Sujet du message" required>
-            </label>
 
             <label class="support-field">
               <span data-i18n="supportFieldDetails">Details</span>

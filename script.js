@@ -2,6 +2,8 @@ const STORAGE_KEY = "sc-training-home-lang";
 const LOCATION_ACCESS_KEY = "sc-training-location-access";
 const CLIENT_STORAGE_KEY = "sc-training-client";
 const SUPPORT_STORAGE_KEY = "sc-training-support-items";
+const ADMIN_STORAGE_KEY = "sc-training-is-admin";
+const ADMIN_PASSWORD = "Quality0Defects";
 const COMPANY_LAT = 34.304222;
 const COMPANY_LNG = -6.390333;
 const ALLOWED_RADIUS_METERS = 150;
@@ -38,8 +40,11 @@ const documentPageKickerNode = document.querySelector("[data-doc-page-kicker]");
 const documentPageTitleNode = document.querySelector("[data-doc-page-title]");
 const documentSectionNameNode = document.querySelector("[data-doc-section-name]");
 const documentListNode = document.querySelector("[data-doc-list]");
+const documentUploadButtonNode = document.querySelector("[data-doc-upload-button]");
+const documentUploadInputNode = document.querySelector("[data-doc-upload-input]");
 const documentFullscreenButtonNode = document.querySelector("[data-doc-fullscreen-button]");
 const documentClosePreviewNode = document.querySelector("[data-doc-close-preview]");
+const documentActionStatusNode = document.querySelector("[data-doc-action-status]");
 const documentStatusNodes = document.querySelectorAll("[data-doc-status]");
 const supportClientNameNode = document.querySelector("[data-support-client-name]");
 const supportLineStepNode = document.querySelector(".support-line-step");
@@ -48,6 +53,8 @@ const supportLineSelectNode = document.querySelector("[data-support-line-select]
 const supportLineInputNode = document.querySelector("[data-support-line-input]");
 const supportLineStatusNode = document.querySelector("[data-support-line-status]");
 const supportContentNode = document.querySelector("[data-support-content]");
+const supportAdminPanelNode = document.querySelector("[data-support-admin-panel]");
+const supportViewerPanelNode = document.querySelector("[data-support-viewer-panel]");
 const supportFormNode = document.querySelector("[data-support-form]");
 const supportTypeInputNode = document.querySelector("[data-support-type-input]");
 const supportTypeCardNodes = document.querySelectorAll("[data-support-type-card]");
@@ -62,10 +69,16 @@ const supportCopyButtonNode = document.querySelector("[data-support-copy-button]
 const supportStatusNode = document.querySelector("[data-support-status]");
 const supportHistoryNode = document.querySelector("[data-support-history]");
 const verifyLocationBtn = document.getElementById("verifyLocationBtn");
-const testAccessBtn = document.getElementById("testAccessBtn");
+const adminLoginBtn = document.getElementById("adminLoginBtn");
+const adminLoginModal = document.getElementById("adminLoginModal");
+const adminLoginCloseBtn = document.getElementById("adminLoginClose");
+const adminLoginForm = document.getElementById("adminLoginForm");
+const adminPasswordInput = document.getElementById("adminPasswordInput");
+const adminLoginStatusNode = document.getElementById("adminLoginStatus");
 const locationStatus = document.getElementById("locationStatus");
 const locationDetail = document.getElementById("locationDetail");
 const gpsCard = document.querySelector(".gps-card");
+const adminOnlyNodes = document.querySelectorAll("[data-admin-only]");
 
 let locationStatusKey = locationStatus ? locationStatus.dataset.i18n || "locationWaiting" : "";
 let locationStatusState = locationStatus ? locationStatus.dataset.state || "info" : "info";
@@ -84,6 +97,11 @@ let pdfRenderToken = 0;
 let activeGalleryItems = [];
 let activeGalleryIndex = 0;
 let activeDocumentZoom = 1;
+let adminLoginStatusKey = "";
+let documentActionStatusKey = "";
+let documentActionStatusState = "info";
+const documentServerDocuments = new Map();
+const documentDeletedPaths = new Set();
 
 const documentLibraries = {
   stellantis: {
@@ -103,7 +121,7 @@ const documentLibraries = {
       {
         id: "mapping-charge-ar-v2",
         title: "Mapping charge AR version 2",
-        path: "./documents/stellantis/mapping-charge-ar-version-2.png",
+        path: "./documents/stellantis/mapping-charge-ar-version-2.PNG",
         mediaType: "image/png"
       }
     ],
@@ -148,6 +166,66 @@ const documentLibraries = {
 
 function getText(lang, key) {
   return (translations[lang] && translations[lang][key]) || translations.fr[key] || "";
+}
+
+function isAdmin() {
+  return localStorage.getItem(ADMIN_STORAGE_KEY) === "true";
+}
+
+function setAdminState(nextValue) {
+  localStorage.setItem(ADMIN_STORAGE_KEY, nextValue ? "true" : "false");
+  document.body.dataset.role = nextValue ? "admin" : "viewer";
+}
+
+function applyRoleUi(lang = document.documentElement.lang || "fr") {
+  const adminActive = isAdmin();
+  document.body.dataset.role = adminActive ? "admin" : "viewer";
+
+  adminOnlyNodes.forEach((node) => {
+    node.hidden = !adminActive;
+  });
+
+  if (supportAdminPanelNode) {
+    supportAdminPanelNode.hidden = !adminActive;
+  }
+
+  if (supportViewerPanelNode) {
+    supportViewerPanelNode.hidden = adminActive;
+  }
+
+  updateSupportAccess(lang);
+  updateDocumentAccess(lang);
+}
+
+function canUseServerApi() {
+  return window.location.protocol !== "file:";
+}
+
+function updateAdminLoginStatus(lang, key = "", state = "info") {
+  if (!adminLoginStatusNode) {
+    return;
+  }
+
+  adminLoginStatusKey = key;
+  adminLoginStatusNode.dataset.state = state;
+  adminLoginStatusNode.textContent = key ? getText(lang, key) : "";
+}
+
+function setDocumentActionStatus(lang, key = "", state = "info") {
+  if (!documentActionStatusNode) {
+    return;
+  }
+
+  documentActionStatusKey = key;
+  documentActionStatusState = state;
+  documentActionStatusNode.hidden = !key;
+  documentActionStatusNode.classList.toggle("is-success", state === "success");
+  documentActionStatusNode.classList.toggle("is-error", state === "error");
+  documentActionStatusNode.textContent = key ? getText(lang, key) : "";
+}
+
+function confirmDeleteAction(lang = document.documentElement.lang || "fr") {
+  return window.confirm(getText(lang, "deleteConfirmPrompt"));
 }
 
 function normalizeDocumentSection(section) {
@@ -490,6 +568,106 @@ function setVerifyButtonLabel(lang, key, disabled = false) {
   verifyLocationBtn.disabled = disabled;
 }
 
+async function syncAdminSession() {
+  if (!canUseServerApi()) {
+    applyRoleUi(document.documentElement.lang || "fr");
+    return;
+  }
+
+  try {
+    const response = await fetch("./api/admin/status", {
+      credentials: "same-origin"
+    });
+    const payload = await response.json();
+    setAdminState(Boolean(payload && payload.isAdmin));
+  } catch {
+    setAdminState(false);
+  }
+
+  applyRoleUi(document.documentElement.lang || "fr");
+}
+
+function closeAdminLoginModal() {
+  if (!adminLoginModal) {
+    return;
+  }
+
+  adminLoginModal.hidden = true;
+  adminLoginModal.classList.remove("is-open");
+}
+
+function openAdminLoginModal(lang = document.documentElement.lang || "fr") {
+  if (!adminLoginModal) {
+    return;
+  }
+
+  adminLoginModal.hidden = false;
+  adminLoginModal.classList.add("is-open");
+  updateAdminLoginStatus(lang);
+
+  if (adminPasswordInput) {
+    adminPasswordInput.value = "";
+    adminPasswordInput.placeholder = getText(lang, "adminPasswordPlaceholder");
+    window.setTimeout(() => adminPasswordInput.focus(), 20);
+  }
+}
+
+async function handleAdminLogin(password, lang) {
+  if (!password) {
+    updateAdminLoginStatus(lang, "adminAccessDenied", "error");
+    return;
+  }
+
+  if (!canUseServerApi()) {
+    const granted = password === ADMIN_PASSWORD;
+    setAdminState(granted);
+
+    if (!granted) {
+      updateAdminLoginStatus(lang, "adminAccessDenied", "error");
+      return;
+    }
+
+    unlockLocationGate();
+    updateAdminLoginStatus(lang, "adminAccessGranted", "success");
+    window.setTimeout(() => {
+      closeAdminLoginModal();
+      openClientSelection();
+    }, 550);
+    return;
+  }
+
+  try {
+    const response = await fetch("./api/admin/login", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password })
+    });
+
+    if (!response.ok) {
+      setAdminState(false);
+      updateAdminLoginStatus(lang, "adminAccessDenied", "error");
+      applyRoleUi(lang);
+      return;
+    }
+
+    setAdminState(true);
+    unlockLocationGate();
+    applyRoleUi(lang);
+    updateAdminLoginStatus(lang, "adminAccessGranted", "success");
+    window.setTimeout(() => {
+      closeAdminLoginModal();
+      openClientSelection();
+    }, 550);
+  } catch {
+    setAdminState(false);
+    applyRoleUi(lang);
+    updateAdminLoginStatus(lang, "adminServerUnavailable", "error");
+  }
+}
+
 function openDashboard() {
   window.location.href = "./dashboard.html";
 }
@@ -530,10 +708,31 @@ function getSupportEntries() {
   try {
     const rawEntries = localStorage.getItem(SUPPORT_STORAGE_KEY);
     const parsedEntries = JSON.parse(rawEntries || "[]");
-    return Array.isArray(parsedEntries) ? parsedEntries : [];
+    if (!Array.isArray(parsedEntries)) {
+      return [];
+    }
+
+    const cleanedEntries = parsedEntries.filter((entry) => !shouldDiscardSupportTestEntry(entry));
+
+    if (cleanedEntries.length !== parsedEntries.length) {
+      saveSupportEntries(cleanedEntries);
+    }
+
+    return cleanedEntries;
   } catch {
     return [];
   }
+}
+
+function shouldDiscardSupportTestEntry(entry) {
+  if (!entry || typeof entry !== "object") {
+    return false;
+  }
+
+  const subject = String(entry.subject || "").trim().toLowerCase();
+  const details = String(entry.details || "").trim().toLowerCase();
+
+  return subject === "k" && details === "k";
 }
 
 function getCurrentSupportLineValue() {
@@ -810,6 +1009,27 @@ function saveSupportEntries(entries) {
   }
 }
 
+function deleteSupportEntry(entryId, lang) {
+  if (!entryId) {
+    return;
+  }
+
+  if (!confirmDeleteAction(lang)) {
+    return;
+  }
+
+  const nextEntries = getSupportEntries().filter((entry) => entry.id !== entryId);
+  const deleted = saveSupportEntries(nextEntries);
+
+  if (!deleted) {
+    updateSupportStatus(lang, "supportStatusDeleteFailed", "error");
+    return;
+  }
+
+  renderSupportHistory(lang);
+  updateSupportStatus(lang, "supportStatusDeleted", "success");
+}
+
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -901,6 +1121,9 @@ function renderSupportPhotoPreview(lang) {
     removeNode.title = getText(lang, "supportPhotoRemove");
     removeNode.textContent = "×";
     removeNode.addEventListener("click", () => {
+      if (!confirmDeleteAction(document.documentElement.lang || "fr")) {
+        return;
+      }
       supportPhotoItems.splice(index, 1);
       renderSupportPhotoPreview(document.documentElement.lang || "fr");
       updateSupportPhotoHelp(document.documentElement.lang || "fr");
@@ -1062,7 +1285,24 @@ function renderSupportHistory(lang) {
     dateNode.className = "support-history-item__date";
     dateNode.textContent = formatSupportDate(entry.createdAt, lang);
 
-    topNode.append(badgesNode, dateNode);
+    const actionsNode = document.createElement("div");
+    actionsNode.className = "support-history-item__actions";
+
+    actionsNode.append(dateNode);
+
+    if (isAdmin()) {
+      const deleteNode = document.createElement("button");
+      deleteNode.type = "button";
+      deleteNode.className = "support-history-item__delete";
+      deleteNode.textContent = getText(lang, "supportHistoryDelete");
+      deleteNode.setAttribute("aria-label", getText(lang, "supportHistoryDelete"));
+      deleteNode.addEventListener("click", () => {
+        deleteSupportEntry(entry.id, document.documentElement.lang || "fr");
+      });
+      actionsNode.append(deleteNode);
+    }
+
+    topNode.append(badgesNode, actionsNode);
 
     const subjectNode = document.createElement("h3");
     subjectNode.className = "support-history-item__subject";
@@ -1113,6 +1353,29 @@ function renderSupportHistory(lang) {
   });
 }
 
+function updateSupportAccess(lang) {
+  const adminActive = isAdmin();
+
+  if (supportFormNode) {
+    supportFormNode.querySelectorAll("input, select, textarea, button").forEach((field) => {
+      field.disabled = !adminActive;
+    });
+    supportFormNode.setAttribute("aria-hidden", adminActive ? "false" : "true");
+  }
+
+  if (supportCopyButtonNode) {
+    supportCopyButtonNode.hidden = !adminActive;
+  }
+
+  if (supportPhotoInputNode) {
+    supportPhotoInputNode.disabled = !adminActive;
+  }
+
+  if (!adminActive && supportStatusNode) {
+    updateSupportStatus(lang, "supportViewerReadonly", "info");
+  }
+}
+
 function updateSupportCenter(lang) {
   if (!supportFormNode) {
     return;
@@ -1145,8 +1408,11 @@ function updateSupportCenter(lang) {
   renderSupportPhotoPreview(lang);
   updateSupportLineGate(lang);
   updateSupportTypeCards(currentSupportType);
+  updateSupportAccess(lang);
   renderSupportHistory(lang);
-  updateSupportStatus(lang, supportStatusKey, (supportStatusNode && supportStatusNode.dataset.state) || "info");
+  if (isAdmin()) {
+    updateSupportStatus(lang, supportStatusKey, (supportStatusNode && supportStatusNode.dataset.state) || "info");
+  }
 }
 
 function setupSupportCenter() {
@@ -1162,12 +1428,21 @@ function setupSupportCenter() {
 
   if (supportPhotoInputNode) {
     supportPhotoInputNode.addEventListener("change", async (event) => {
+      if (!isAdmin()) {
+        updateSupportStatus(document.documentElement.lang || "fr", "supportViewerReadonly", "info");
+        event.target.value = "";
+        return;
+      }
       await handleSupportPhotoSelection(event.target.files, document.documentElement.lang || "fr");
     });
   }
 
   supportTypeCardNodes.forEach((card) => {
     card.addEventListener("click", () => {
+      if (!isAdmin()) {
+        updateSupportStatus(document.documentElement.lang || "fr", "supportViewerReadonly", "info");
+        return;
+      }
       updateSupportTypeCards(card.dataset.supportType || "message");
     });
   });
@@ -1176,6 +1451,10 @@ function setupSupportCenter() {
     event.preventDefault();
 
     const lang = document.documentElement.lang || "fr";
+    if (!isAdmin()) {
+      updateSupportStatus(lang, "supportViewerReadonly", "info");
+      return;
+    }
     updateSupportLineGate(lang);
 
     if (!selectedSupportLine) {
@@ -1226,6 +1505,10 @@ function setupSupportCenter() {
   if (supportCopyButtonNode) {
     supportCopyButtonNode.addEventListener("click", async () => {
       const lang = document.documentElement.lang || "fr";
+      if (!isAdmin()) {
+        updateSupportStatus(lang, "supportViewerReadonly", "info");
+        return;
+      }
       updateSupportLineGate(lang);
 
       if (!selectedSupportLine) {
@@ -1259,19 +1542,160 @@ function setupSupportCenter() {
 
   updateSupportPhotoHelp(document.documentElement.lang || "fr");
   updateSupportLineGate(document.documentElement.lang || "fr");
+  updateSupportAccess(document.documentElement.lang || "fr");
 }
 
 function getClientDocuments(client, section = "quality") {
   const normalizedSection = normalizeDocumentSection(section);
   const availableBaseDocuments = getDocumentLibrary(client, normalizedSection);
+  const collectionKey = getDocumentCollectionKey(client, normalizedSection);
+  const serverDocuments = documentServerDocuments.get(collectionKey) || [];
   const documentsByName = new Map();
 
-  availableBaseDocuments.forEach((documentItem) => {
+  availableBaseDocuments
+    .filter((documentItem) => !documentDeletedPaths.has(documentItem.path))
+    .forEach((documentItem) => {
+      const identityKey = getDocumentIdentityKey(documentItem);
+      documentsByName.set(identityKey || documentItem.id, documentItem);
+    });
+
+  serverDocuments.forEach((documentItem) => {
     const identityKey = getDocumentIdentityKey(documentItem);
     documentsByName.set(identityKey || documentItem.id, documentItem);
   });
 
   return Array.from(documentsByName.values()).sort(compareDocumentTitles);
+}
+
+async function loadServerDocuments(client, section = "quality") {
+  if (!canUseServerApi()) {
+    return;
+  }
+
+  const normalizedSection = normalizeDocumentSection(section);
+
+  try {
+    const response = await fetch(`./api/documents?client=${encodeURIComponent(client)}&section=${encodeURIComponent(normalizedSection)}`, {
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = await response.json();
+    const collectionKey = getDocumentCollectionKey(client, normalizedSection);
+    const nextDocuments = Array.isArray(payload.documents) ? payload.documents : [];
+    documentServerDocuments.set(collectionKey, nextDocuments);
+
+    documentDeletedPaths.clear();
+    (payload.deletedPaths || []).forEach((deletedPath) => {
+      documentDeletedPaths.add(deletedPath);
+    });
+  } catch {
+    // Keep base library visible when the Node API is unavailable.
+  }
+}
+
+function updateDocumentAccess(lang) {
+  const adminActive = isAdmin();
+
+  if (documentUploadButtonNode) {
+    documentUploadButtonNode.hidden = !adminActive;
+  }
+
+  if (!adminActive && documentActionStatusKey && documentActionStatusNode) {
+    setDocumentActionStatus(lang);
+  }
+}
+
+async function uploadDocumentFile(file, client, section, lang) {
+  if (!file || !isAdmin()) {
+    setDocumentActionStatus(lang, "documentPageViewerReadonly", "info");
+    return;
+  }
+
+  if (!canUseServerApi()) {
+    setDocumentActionStatus(lang, "documentPageServerRequired", "error");
+    return;
+  }
+
+  setDocumentActionStatus(lang, "documentPageUploading", "info");
+
+  try {
+    const dataUrl = await readFileAsDataUrl(file);
+    const response = await fetch("./api/documents", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        client,
+        section,
+        title: file.name,
+        mediaType: file.type || "",
+        dataUrl
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("upload_failed");
+    }
+
+    const payload = await response.json();
+    await loadServerDocuments(client, section);
+    setDocumentActionStatus(lang, "documentPageUploadSuccess", "success");
+    selectDocument(payload.document?.path || getClientDocuments(client, section).slice(-1)[0]?.path || "", client, section);
+  } catch {
+    setDocumentActionStatus(lang, "documentPageUploadError", "error");
+  }
+}
+
+async function deleteDocumentFile(documentItem, client, section, lang) {
+  if (!documentItem || !isAdmin()) {
+    setDocumentActionStatus(lang, "documentPageViewerReadonly", "info");
+    return;
+  }
+
+  if (!confirmDeleteAction(lang)) {
+    return;
+  }
+
+  if (!canUseServerApi()) {
+    setDocumentActionStatus(lang, "documentPageServerRequired", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch("./api/documents", {
+      method: "DELETE",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        client,
+        section,
+        path: documentItem.path,
+        title: documentItem.title
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("delete_failed");
+    }
+
+    await loadServerDocuments(client, section);
+    const nextDocuments = getClientDocuments(client, section);
+    const nextSelectedPath = nextDocuments[0] ? nextDocuments[0].path : "";
+    documentSelectionOverride = nextSelectedPath;
+    window.history.replaceState({}, "", getDocumentViewerPageUrl(client, nextSelectedPath, section));
+    updateDocumentViewer(lang);
+    setDocumentActionStatus(lang, "documentPageDeleteSuccess", "success");
+  } catch {
+    setDocumentActionStatus(lang, "documentPageDeleteError", "error");
+  }
 }
 
 function updateDocumentActions(client) {
@@ -1380,6 +1804,18 @@ function updateDocumentViewer(lang) {
       });
 
       item.appendChild(link);
+
+      if (isAdmin()) {
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "document-viewer-doc-delete";
+        deleteButton.textContent = getText(lang, "documentPageDelete");
+        deleteButton.addEventListener("click", () => {
+          deleteDocumentFile(documentItem, client, section, lang);
+        });
+        item.appendChild(deleteButton);
+      }
+
       documentListNode.appendChild(item);
     });
   }
@@ -1389,6 +1825,10 @@ function updateDocumentViewer(lang) {
 
   if (documentFullscreenButtonNode) {
     documentFullscreenButtonNode.disabled = !hasSelectedDocument;
+  }
+
+  if (documentActionStatusKey) {
+    setDocumentActionStatus(lang, documentActionStatusKey, documentActionStatusState);
   }
 
   syncPreviewFullscreenState(lang);
@@ -1455,6 +1895,24 @@ function updateDocumentViewer(lang) {
 }
 
 function setupDocumentUpload() {
+  if (documentUploadButtonNode && documentUploadInputNode) {
+    documentUploadButtonNode.addEventListener("click", () => {
+      if (!isAdmin()) {
+        setDocumentActionStatus(document.documentElement.lang || "fr", "documentPageViewerReadonly", "info");
+        return;
+      }
+
+      documentUploadInputNode.click();
+    });
+
+    documentUploadInputNode.addEventListener("change", async (event) => {
+      const file = event.target.files && event.target.files[0];
+      const { client, section } = getDocumentViewerConfig();
+      await uploadDocumentFile(file, client, section, document.documentElement.lang || "fr");
+      documentUploadInputNode.value = "";
+    });
+  }
+
   if (documentFullscreenButtonNode) {
     documentFullscreenButtonNode.addEventListener("click", () => {
       openDocumentPreviewInFullscreen();
@@ -1536,6 +1994,14 @@ function setupDocumentUpload() {
       setDocumentZoom(1);
     });
   }
+
+  if (documentFrameNode) {
+    const { client, section } = getDocumentViewerConfig();
+    loadServerDocuments(client, section).finally(() => {
+      updateDocumentViewer(document.documentElement.lang || "fr");
+      updateDocumentAccess(document.documentElement.lang || "fr");
+    });
+  }
 }
 
 function queueVerifyButtonReset(lang) {
@@ -1582,9 +2048,14 @@ function setLanguage(lang) {
   updateStoredClient(lang);
   updateDocumentViewer(lang);
   updateSupportCenter(lang);
+  applyRoleUi(lang);
   setVerifyButtonLabel(lang, verifyButtonKey, verifyButtonDisabled);
   if (locationStatusKey) {
     setLocationStatusByKey(lang, locationStatusKey, locationStatusState);
+  }
+
+  if (adminPasswordInput) {
+    adminPasswordInput.placeholder = getText(lang, "adminPasswordPlaceholder");
   }
 
   localStorage.setItem(STORAGE_KEY, lang);
@@ -1768,6 +2239,7 @@ function handleLocationSuccess(position) {
   const detailMessage = buildLocationDetail(lang, distance, effectiveRadius, position.coords.accuracy);
 
   if (distance <= effectiveRadius) {
+    setAdminState(false);
     unlockLocationGate();
     locationRequestInProgress = false;
     setLocationStatusByKey(lang, "locationGranted", "success");
@@ -1858,7 +2330,8 @@ function setupLocationGate() {
   const isProtectedPage =
     document.body.classList.contains("home-page") ||
     document.body.classList.contains("dashboard-page") ||
-    document.body.classList.contains("document-viewer-page");
+    document.body.classList.contains("document-viewer-page") ||
+    document.body.classList.contains("support-page");
   const isClientSelectPage = document.body.classList.contains("client-select-page");
   const hasAccess = hasLocationAccess();
   const lang = document.documentElement.lang || "fr";
@@ -1873,12 +2346,8 @@ function setupLocationGate() {
   }
 
     if (document.body.classList.contains("home-page")) {
-      if (hasAccess) {
-        setLocationStatusByKey(lang, "locationGranted", "success");
-      } else {
-        setLocationStatusByKey(lang, "locationWaiting", "info");
-        setLocationDetail("");
-      }
+      setLocationStatusByKey(lang, "locationWaiting", "info");
+      setLocationDetail("");
     }
 
   if (verifyLocationBtn) {
@@ -1908,18 +2377,38 @@ function setupLocationGate() {
       });
     }
 
-  if (testAccessBtn) {
-    testAccessBtn.addEventListener("click", () => {
-      const currentLang = document.documentElement.lang || "fr";
-        unlockLocationGate();
-        setLocationStatusByKey(currentLang, "testAccessGranted", "success");
-        setLocationDetail("");
-        setVerifyButtonLabel(currentLang, "locationGranted", true);
-        testAccessBtn.disabled = true;
+  if (adminLoginBtn) {
+    adminLoginBtn.addEventListener("click", () => {
+      openAdminLoginModal(document.documentElement.lang || "fr");
+    });
+  }
 
-      window.setTimeout(() => {
-        openClientSelection();
-      }, 500);
+  if (adminLoginCloseBtn) {
+    adminLoginCloseBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeAdminLoginModal();
+    });
+  }
+
+  if (adminLoginModal) {
+    adminLoginModal.addEventListener("click", (event) => {
+      if (event.target === adminLoginModal) {
+        closeAdminLoginModal();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && adminLoginModal && !adminLoginModal.hidden) {
+      closeAdminLoginModal();
+    }
+  });
+
+  if (adminLoginForm) {
+    adminLoginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await handleAdminLogin((adminPasswordInput && adminPasswordInput.value.trim()) || "", document.documentElement.lang || "fr");
     });
   }
 
@@ -1972,5 +2461,9 @@ setupLocationGate();
 setupDocumentUpload();
 setupSupportCenter();
 setupRevealAnimations();
+if (!localStorage.getItem(ADMIN_STORAGE_KEY)) {
+  setAdminState(false);
+}
 localStorage.removeItem("sc-training-location-access-persist");
 setLanguage(localStorage.getItem(STORAGE_KEY) || "fr");
+syncAdminSession();

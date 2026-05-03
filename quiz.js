@@ -1,4 +1,7 @@
 const QUIZ_LANG_STORAGE_KEY = "sc-training-home-lang";
+const QUIZ_ROLE_STORAGE_KEY = "sc-training-is-admin";
+const QUIZ_LOCATION_ACCESS_KEY = "sc-training-location-access";
+const QUIZ_BANK_STORAGE_KEY = "sc-training-quiz-bank";
 const QUIZ_CLIENT = "stellantis";
 const SESSION_SIZE = 10;
 const OPTION_LETTERS = ["A", "B", "C", "D"];
@@ -56,7 +59,20 @@ const quizUi = {
       practical: "Partie 8 : Cas pratiques",
       advanced: "Partie 9 : Avance",
       culture: "Partie 10 : Culture qualite"
-    }
+    },
+    adminKicker: "Administration",
+    adminTitle: "Gestion des questions",
+    adminText: "Ajoutez, modifiez ou supprimez les questions du quiz. Les utilisateurs Viewer peuvent seulement repondre.",
+    adminNew: "Nouvelle question",
+    adminExisting: "Questions existantes",
+    adminSectionLabel: "Section",
+    adminCorrectLabel: "Bonne reponse",
+    adminSave: "Enregistrer",
+    adminDelete: "Supprimer",
+    adminStatusSaved: "La banque de questions a ete mise a jour.",
+    adminStatusDeleted: "La question a ete supprimee.",
+    adminStatusMissing: "Completez au minimum les champs FR et les 4 options.",
+    confirmDeletePrompt: "Etes-vous sur de vouloir supprimer cet element ?"
   },
   en: {
     pageTitle: "SC Training Platform - Stellantis Special Characteristics Quiz",
@@ -110,7 +126,20 @@ const quizUi = {
       practical: "Part 8: Practical cases",
       advanced: "Part 9: Advanced",
       culture: "Part 10: Quality culture"
-    }
+    },
+    adminKicker: "Administration",
+    adminTitle: "Question management",
+    adminText: "Add, edit, or delete quiz questions. Viewer users can only answer the quiz.",
+    adminNew: "New question",
+    adminExisting: "Existing questions",
+    adminSectionLabel: "Section",
+    adminCorrectLabel: "Correct answer",
+    adminSave: "Save",
+    adminDelete: "Delete",
+    adminStatusSaved: "The question bank has been updated.",
+    adminStatusDeleted: "The question was deleted.",
+    adminStatusMissing: "Please complete at least the FR question and the 4 options.",
+    confirmDeletePrompt: "Are you sure you want to delete this item?"
   },
   ar: {
     pageTitle: "SC Training Platform - اختبار الميزات الخاصة Stellantis",
@@ -168,7 +197,23 @@ const quizUi = {
   }
 };
 
-const quizQuestions = [
+Object.assign(quizUi.ar, {
+  adminKicker: "الإدارة",
+  adminTitle: "إدارة الأسئلة",
+  adminText: "أضف أو عدل أو احذف أسئلة الاختبار. يمكن لمستخدم Viewer الإجابة فقط.",
+  adminNew: "سؤال جديد",
+  adminExisting: "الأسئلة الموجودة",
+  adminSectionLabel: "الجزء",
+  adminCorrectLabel: "الإجابة الصحيحة",
+  adminSave: "حفظ",
+  adminDelete: "حذف",
+  adminStatusSaved: "تم تحديث بنك الأسئلة.",
+  adminStatusDeleted: "تم حذف السؤال.",
+  adminStatusMissing: "يرجى إكمال سؤال FR والخيارات الأربع على الأقل.",
+  confirmDeletePrompt: "هل أنت متأكد من رغبتك في الحذف؟"
+});
+
+const defaultQuizQuestions = [
   {
     id: 1,
     section: "general",
@@ -1066,7 +1111,27 @@ const elements = {
   resultNote: document.getElementById("quizResultNote"),
   restartButton: document.getElementById("quizRestartBtn"),
   footerTitle: document.getElementById("quizFooterTitle"),
-  footerSubtitle: document.getElementById("quizFooterSubtitle")
+  footerSubtitle: document.getElementById("quizFooterSubtitle"),
+  adminPanel: document.getElementById("quizAdminPanel"),
+  adminKicker: document.getElementById("quizAdminKicker"),
+  adminTitle: document.getElementById("quizAdminTitle"),
+  adminText: document.getElementById("quizAdminText"),
+  adminResetButton: document.getElementById("quizAdminResetBtn"),
+  adminListLabel: document.getElementById("quizAdminListLabel"),
+  adminQuestionSelect: document.getElementById("quizAdminQuestionSelect"),
+  adminSectionLabel: document.getElementById("quizAdminSectionLabel"),
+  adminSectionSelect: document.getElementById("quizAdminSectionSelect"),
+  adminCorrectLabel: document.getElementById("quizAdminCorrectLabel"),
+  adminCorrectSelect: document.getElementById("quizAdminCorrectSelect"),
+  adminSaveButton: document.getElementById("quizAdminSaveBtn"),
+  adminDeleteButton: document.getElementById("quizAdminDeleteBtn"),
+  adminStatus: document.getElementById("quizAdminStatus"),
+  adminQuestionFr: document.getElementById("quizAdminQuestionFr"),
+  adminQuestionEn: document.getElementById("quizAdminQuestionEn"),
+  adminQuestionAr: document.getElementById("quizAdminQuestionAr"),
+  adminOptionFr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionFr${index}`)),
+  adminOptionEn: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionEn${index}`)),
+  adminOptionAr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionAr${index}`))
 };
 
 function setText(element, value) {
@@ -1075,11 +1140,15 @@ function setText(element, value) {
   }
 }
 
-let currentLang = getInitialLanguage();
-let activeQuestions = [];
-let answers = [];
-let revealedAnswers = [];
-let currentQuestionIndex = 0;
+function setValue(element, value) {
+  if (element) {
+    element.value = value;
+  }
+}
+
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 function getInitialLanguage() {
   const saved = localStorage.getItem(QUIZ_LANG_STORAGE_KEY);
@@ -1087,6 +1156,76 @@ function getInitialLanguage() {
     return saved;
   }
   return "fr";
+}
+
+function isAdmin() {
+  return localStorage.getItem(QUIZ_ROLE_STORAGE_KEY) === "true";
+}
+
+function requireQuizAccess() {
+  if (sessionStorage.getItem(QUIZ_LOCATION_ACCESS_KEY) === "granted") {
+    return true;
+  }
+
+  window.location.replace("./index.html");
+  return false;
+}
+
+function getDefaultQuestionBank() {
+  return cloneData(defaultQuizQuestions);
+}
+
+function normalizeQuestion(question, fallbackId) {
+  const safeQuestion = question && typeof question === "object" ? question : {};
+  const id = Number(safeQuestion.id) || fallbackId;
+  const sections = quizUi.fr.sections;
+  const section = sections[safeQuestion.section] ? safeQuestion.section : "general";
+  const correct = Math.max(0, Math.min(3, Number(safeQuestion.correct) || 0));
+  const frQuestion = String(safeQuestion.fr?.question || "").trim();
+  const frOptions = Array.isArray(safeQuestion.fr?.options) ? safeQuestion.fr.options.slice(0, 4) : [];
+
+  const buildTranslation = (lang, fallbackQuestion, fallbackOptions) => {
+    const source = safeQuestion[lang] || {};
+    const questionText = String(source.question || fallbackQuestion || "").trim();
+    const options = Array.from({ length: 4 }, (_, index) => {
+      return String((source.options && source.options[index]) || fallbackOptions[index] || "").trim();
+    });
+
+    return {
+      question: questionText,
+      options
+    };
+  };
+
+  return {
+    id,
+    section,
+    correct,
+    fr: buildTranslation("fr", frQuestion, frOptions),
+    en: buildTranslation("en", frQuestion, frOptions),
+    ar: buildTranslation("ar", frQuestion, frOptions)
+  };
+}
+
+function loadQuestionBank() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(QUIZ_BANK_STORAGE_KEY) || "null");
+    if (!Array.isArray(stored) || !stored.length) {
+      return getDefaultQuestionBank();
+    }
+
+    return stored.map((question, index) => normalizeQuestion(question, index + 1));
+  } catch {
+    return getDefaultQuestionBank();
+  }
+}
+
+function saveQuestionBank(questionBank) {
+  localStorage.setItem(QUIZ_BANK_STORAGE_KEY, JSON.stringify(questionBank));
+}
+
+function confirmDeleteAction() {
+  return window.confirm(quizUi[currentLang].confirmDeletePrompt);
 }
 
 function formatText(template, values) {
@@ -1102,10 +1241,193 @@ function shuffle(array) {
   return copy;
 }
 
+let currentLang = getInitialLanguage();
+let quizQuestionBank = loadQuestionBank();
+let activeQuestions = [];
+let answers = [];
+let revealedAnswers = [];
+let currentQuestionIndex = 0;
+let selectedAdminQuestionId = "";
+
 function setPanelVisibility() {
   elements.startPanel.classList.toggle("hidden", activeQuestions.length > 0);
   elements.runPanel.classList.toggle("hidden", activeQuestions.length === 0);
   elements.resultPanel.classList.add("hidden");
+}
+
+function setAdminStatus(copyKey = "") {
+  if (!elements.adminStatus) {
+    return;
+  }
+
+  elements.adminStatus.textContent = copyKey ? quizUi[currentLang][copyKey] : "";
+}
+
+function resetAdminForm() {
+  selectedAdminQuestionId = "";
+  setValue(elements.adminQuestionSelect, "");
+  setValue(elements.adminSectionSelect, "general");
+  setValue(elements.adminCorrectSelect, "0");
+  setValue(elements.adminQuestionFr, "");
+  setValue(elements.adminQuestionEn, "");
+  setValue(elements.adminQuestionAr, "");
+  elements.adminOptionFr.forEach((input) => setValue(input, ""));
+  elements.adminOptionEn.forEach((input) => setValue(input, ""));
+  elements.adminOptionAr.forEach((input) => setValue(input, ""));
+}
+
+function getQuestionById(questionId) {
+  return quizQuestionBank.find((question) => String(question.id) === String(questionId)) || null;
+}
+
+function renderAdminQuestionSelect() {
+  if (!elements.adminQuestionSelect) {
+    return;
+  }
+
+  elements.adminQuestionSelect.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = quizUi[currentLang].adminNew;
+  elements.adminQuestionSelect.appendChild(placeholder);
+
+  quizQuestionBank
+    .slice()
+    .sort((first, second) => first.id - second.id)
+    .forEach((question) => {
+      const option = document.createElement("option");
+      option.value = String(question.id);
+      option.textContent = `#${question.id} - ${question.fr.question}`;
+      elements.adminQuestionSelect.appendChild(option);
+    });
+
+  elements.adminQuestionSelect.value = selectedAdminQuestionId ? String(selectedAdminQuestionId) : "";
+}
+
+function renderAdminSectionOptions() {
+  if (!elements.adminSectionSelect) {
+    return;
+  }
+
+  const selectedSection = elements.adminSectionSelect.value || "general";
+  elements.adminSectionSelect.innerHTML = "";
+  Object.entries(quizUi[currentLang].sections).forEach(([sectionKey, sectionLabel]) => {
+    const option = document.createElement("option");
+    option.value = sectionKey;
+    option.textContent = sectionLabel;
+    elements.adminSectionSelect.appendChild(option);
+  });
+  elements.adminSectionSelect.value = quizUi[currentLang].sections[selectedSection] ? selectedSection : "general";
+}
+
+function fillAdminForm(question) {
+  if (!question) {
+    resetAdminForm();
+    return;
+  }
+
+  selectedAdminQuestionId = String(question.id);
+  setValue(elements.adminQuestionSelect, selectedAdminQuestionId);
+  setValue(elements.adminSectionSelect, question.section);
+  setValue(elements.adminCorrectSelect, String(question.correct));
+  setValue(elements.adminQuestionFr, question.fr.question);
+  setValue(elements.adminQuestionEn, question.en.question);
+  setValue(elements.adminQuestionAr, question.ar.question);
+  elements.adminOptionFr.forEach((input, index) => setValue(input, question.fr.options[index] || ""));
+  elements.adminOptionEn.forEach((input, index) => setValue(input, question.en.options[index] || ""));
+  elements.adminOptionAr.forEach((input, index) => setValue(input, question.ar.options[index] || ""));
+}
+
+function buildTranslation(questionInput, optionInputs, fallbackTranslation) {
+  const questionText = String(questionInput?.value || "").trim() || fallbackTranslation.question;
+  const options = optionInputs.map((input, index) => {
+    return String(input?.value || "").trim() || fallbackTranslation.options[index] || "";
+  });
+
+  return {
+    question: questionText,
+    options
+  };
+}
+
+function buildQuestionFromForm() {
+  const frTranslation = {
+    question: String(elements.adminQuestionFr?.value || "").trim(),
+    options: elements.adminOptionFr.map((input) => String(input?.value || "").trim())
+  };
+
+  if (!frTranslation.question || frTranslation.options.some((option) => !option)) {
+    return null;
+  }
+
+  return normalizeQuestion(
+    {
+      id: selectedAdminQuestionId ? Number(selectedAdminQuestionId) : null,
+      section: elements.adminSectionSelect?.value || "general",
+      correct: Number(elements.adminCorrectSelect?.value || 0),
+      fr: frTranslation,
+      en: buildTranslation(elements.adminQuestionEn, elements.adminOptionEn, frTranslation),
+      ar: buildTranslation(elements.adminQuestionAr, elements.adminOptionAr, frTranslation)
+    },
+    quizQuestionBank.reduce((maxId, question) => Math.max(maxId, Number(question.id) || 0), 0) + 1
+  );
+}
+
+function renderAdminPanel() {
+  if (!elements.adminPanel) {
+    return;
+  }
+
+  elements.adminPanel.classList.toggle("hidden", !isAdmin());
+  if (!isAdmin()) {
+    return;
+  }
+
+  renderAdminSectionOptions();
+  renderAdminQuestionSelect();
+}
+
+function saveAdminQuestion() {
+  const nextQuestion = buildQuestionFromForm();
+  if (!nextQuestion) {
+    setAdminStatus("adminStatusMissing");
+    return;
+  }
+
+  const existingIndex = quizQuestionBank.findIndex((question) => String(question.id) === String(nextQuestion.id));
+  if (existingIndex >= 0) {
+    quizQuestionBank.splice(existingIndex, 1, nextQuestion);
+  } else {
+    quizQuestionBank.push(nextQuestion);
+  }
+
+  quizQuestionBank.sort((first, second) => first.id - second.id);
+  saveQuestionBank(quizQuestionBank);
+  fillAdminForm(nextQuestion);
+  renderAdminPanel();
+  setAdminStatus("adminStatusSaved");
+}
+
+function deleteAdminQuestion() {
+  if (!selectedAdminQuestionId) {
+    resetAdminForm();
+    return;
+  }
+
+  if (!confirmDeleteAction()) {
+    return;
+  }
+
+  quizQuestionBank = quizQuestionBank.filter((question) => String(question.id) !== String(selectedAdminQuestionId));
+  if (!quizQuestionBank.length) {
+    quizQuestionBank = getDefaultQuestionBank();
+  }
+
+  saveQuestionBank(quizQuestionBank);
+  resetAdminForm();
+  renderAdminPanel();
+  setAdminStatus("adminStatusDeleted");
 }
 
 function setLanguage(lang) {
@@ -1158,6 +1480,20 @@ function setLanguage(lang) {
   setText(elements.restartButton, copy.restart);
   setText(elements.footerTitle, copy.footerTitle);
   setText(elements.footerSubtitle, copy.footerSubtitle);
+  setText(elements.adminKicker, copy.adminKicker);
+  setText(elements.adminTitle, copy.adminTitle);
+  setText(elements.adminText, copy.adminText);
+  setText(elements.adminResetButton, copy.adminNew);
+  setText(elements.adminListLabel, copy.adminExisting);
+  setText(elements.adminSectionLabel, copy.adminSectionLabel);
+  setText(elements.adminCorrectLabel, copy.adminCorrectLabel);
+  setText(elements.adminSaveButton, copy.adminSave);
+  setText(elements.adminDeleteButton, copy.adminDelete);
+
+  renderAdminPanel();
+  if (selectedAdminQuestionId) {
+    fillAdminForm(getQuestionById(selectedAdminQuestionId));
+  }
 
   if (activeQuestions.length > 0) {
     renderQuestion();
@@ -1165,7 +1501,7 @@ function setLanguage(lang) {
 }
 
 function startQuiz() {
-  activeQuestions = shuffle(quizQuestions).slice(0, SESSION_SIZE);
+  activeQuestions = shuffle(quizQuestionBank).slice(0, Math.min(SESSION_SIZE, quizQuestionBank.length));
   answers = new Array(activeQuestions.length).fill(null);
   revealedAnswers = new Array(activeQuestions.length).fill(false);
   currentQuestionIndex = 0;
@@ -1299,5 +1635,32 @@ elements.submitButton.addEventListener("click", () => {
   showResult();
 });
 
-setLanguage(currentLang);
-setPanelVisibility();
+if (elements.adminResetButton) {
+  elements.adminResetButton.addEventListener("click", () => {
+    resetAdminForm();
+    setAdminStatus("");
+  });
+}
+
+if (elements.adminQuestionSelect) {
+  elements.adminQuestionSelect.addEventListener("change", () => {
+    selectedAdminQuestionId = elements.adminQuestionSelect.value || "";
+    fillAdminForm(getQuestionById(selectedAdminQuestionId));
+    setAdminStatus("");
+  });
+}
+
+if (elements.adminSaveButton) {
+  elements.adminSaveButton.addEventListener("click", saveAdminQuestion);
+}
+
+if (elements.adminDeleteButton) {
+  elements.adminDeleteButton.addEventListener("click", deleteAdminQuestion);
+}
+
+if (requireQuizAccess()) {
+  setLanguage(currentLang);
+  renderAdminPanel();
+  resetAdminForm();
+  setPanelVisibility();
+}

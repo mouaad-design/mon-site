@@ -41,11 +41,14 @@
             <p class="document-viewer-library__title" data-i18n="documentPageListTitle">Documents enregistres</p>
           </div>
           <div class="document-viewer-upload">
+            <input type="file" class="document-viewer-upload__input" data-doc-upload-input accept=".pdf,image/*,video/*" hidden>
+            <button type="button" class="document-viewer-upload__action" data-doc-upload-button data-admin-only data-i18n="documentPageAdd">Ajouter un document</button>
             <button type="button" class="document-viewer-upload__action document-viewer-upload__action--secondary" data-doc-fullscreen-button data-i18n="documentPageFullscreen" disabled>Plein ecran</button>
           </div>
         </div>
 
         <div class="document-viewer-docs" data-doc-list></div>
+        <p class="document-viewer-action-status" data-doc-action-status hidden></p>
       </div>
 
       <p class="document-viewer-empty" data-doc-status data-i18n="documentPageUnavailable" hidden>Aucun document n'est encore disponible pour ce client.</p>

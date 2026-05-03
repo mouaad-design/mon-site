@@ -6,6 +6,9 @@ const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
 const DOCUMENTS_DIR = path.join(ROOT_DIR, "documents");
 const MANIFEST_PATH = path.join(DOCUMENTS_DIR, "document-manifest.json");
+const ADMIN_PASSWORD = "Quality0Defects";
+const ADMIN_COOKIE_NAME = "sc_training_admin";
+const ADMIN_COOKIE_VALUE = "active";
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -41,6 +44,37 @@ function writeManifest(manifest) {
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(payload));
+}
+
+function readCookies(request) {
+  const rawCookie = request.headers.cookie || "";
+  return rawCookie.split(";").reduce((cookies, cookiePart) => {
+    const [name, ...valueParts] = cookiePart.trim().split("=");
+    if (!name) {
+      return cookies;
+    }
+
+    cookies[name] = decodeURIComponent(valueParts.join("=") || "");
+    return cookies;
+  }, {});
+}
+
+function isAdminRequest(request) {
+  const cookies = readCookies(request);
+  return cookies[ADMIN_COOKIE_NAME] === ADMIN_COOKIE_VALUE;
+}
+
+function requireAdmin(request, response) {
+  if (isAdminRequest(request)) {
+    return true;
+  }
+
+  sendJson(response, 403, { error: "Admin access required" });
+  return false;
+}
+
+function setAdminCookie(response) {
+  response.setHeader("Set-Cookie", `${ADMIN_COOKIE_NAME}=${ADMIN_COOKIE_VALUE}; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800`);
 }
 
 function readRequestBody(request) {
@@ -125,6 +159,10 @@ function sendJsonResponse(response, statusCode, payload) {
 
 async function saveDocument(request, response) {
   try {
+    if (!requireAdmin(request, response)) {
+      return;
+    }
+
     const payload = JSON.parse(await readRequestBody(request));
     const client = safeSegment(payload.client, "stellantis");
     const section = safeSegment(payload.section, "quality");
@@ -168,6 +206,10 @@ async function saveDocument(request, response) {
 
 async function deleteDocument(request, response) {
   try {
+    if (!requireAdmin(request, response)) {
+      return;
+    }
+
     const payload = JSON.parse(await readRequestBody(request));
     const client = safeSegment(payload.client, "stellantis");
     const section = safeSegment(payload.section, "quality");
@@ -197,6 +239,27 @@ async function deleteDocument(request, response) {
   } catch (error) {
     sendJson(response, 400, { error: "Unable to delete document" });
   }
+}
+
+async function handleAdminLogin(request, response) {
+  try {
+    const payload = JSON.parse(await readRequestBody(request));
+    const password = String(payload.password || "");
+
+    if (password !== ADMIN_PASSWORD) {
+      sendJson(response, 401, { ok: false });
+      return;
+    }
+
+    setAdminCookie(response);
+    sendJson(response, 200, { ok: true, isAdmin: true });
+  } catch {
+    sendJson(response, 400, { ok: false });
+  }
+}
+
+function handleAdminStatus(request, response) {
+  sendJson(response, 200, { isAdmin: isAdminRequest(request) });
 }
 
 function serveStatic(request, response, url) {
@@ -229,6 +292,16 @@ const server = http.createServer(async (request, response) => {
   if (url.pathname === "/api/documents" && request.method === "GET") {
     url.response = response;
     getClientDocuments(url);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/login" && request.method === "POST") {
+    await handleAdminLogin(request, response);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/status" && request.method === "GET") {
+    handleAdminStatus(request, response);
     return;
   }
 

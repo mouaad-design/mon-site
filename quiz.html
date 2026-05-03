@@ -44,6 +44,89 @@
         </div>
       </section>
 
+      <section class="quiz-admin-panel hidden" id="quizAdminPanel">
+        <div class="quiz-admin-head">
+          <div>
+            <span class="quiz-admin-kicker" id="quizAdminKicker">Administration</span>
+            <h2 id="quizAdminTitle">Gestion des questions</h2>
+            <p id="quizAdminText">Ajoutez, modifiez ou supprimez les questions du quiz. Les utilisateurs Viewer peuvent seulement repondre.</p>
+          </div>
+        </div>
+
+        <div class="quiz-admin-grid">
+          <label class="quiz-admin-field">
+            <span id="quizAdminListLabel">Questions existantes</span>
+            <select id="quizAdminQuestionSelect"></select>
+          </label>
+
+          <label class="quiz-admin-field">
+            <span id="quizAdminSectionLabel">Section</span>
+            <select id="quizAdminSectionSelect"></select>
+          </label>
+
+          <label class="quiz-admin-field">
+            <span id="quizAdminCorrectLabel">Bonne reponse</span>
+            <select id="quizAdminCorrectSelect">
+              <option value="0">A</option>
+              <option value="1">B</option>
+              <option value="2">C</option>
+              <option value="3">D</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="quiz-admin-translations">
+          <section class="quiz-admin-language">
+            <h3>FR</h3>
+            <label class="quiz-admin-field">
+              <span>Question FR</span>
+              <textarea id="quizAdminQuestionFr" rows="2"></textarea>
+            </label>
+            <div class="quiz-admin-options-grid">
+              <label class="quiz-admin-field"><span>Option A FR</span><input id="quizAdminOptionFr0" type="text"></label>
+              <label class="quiz-admin-field"><span>Option B FR</span><input id="quizAdminOptionFr1" type="text"></label>
+              <label class="quiz-admin-field"><span>Option C FR</span><input id="quizAdminOptionFr2" type="text"></label>
+              <label class="quiz-admin-field"><span>Option D FR</span><input id="quizAdminOptionFr3" type="text"></label>
+            </div>
+          </section>
+
+          <section class="quiz-admin-language">
+            <h3>EN</h3>
+            <label class="quiz-admin-field">
+              <span>Question EN</span>
+              <textarea id="quizAdminQuestionEn" rows="2"></textarea>
+            </label>
+            <div class="quiz-admin-options-grid">
+              <label class="quiz-admin-field"><span>Option A EN</span><input id="quizAdminOptionEn0" type="text"></label>
+              <label class="quiz-admin-field"><span>Option B EN</span><input id="quizAdminOptionEn1" type="text"></label>
+              <label class="quiz-admin-field"><span>Option C EN</span><input id="quizAdminOptionEn2" type="text"></label>
+              <label class="quiz-admin-field"><span>Option D EN</span><input id="quizAdminOptionEn3" type="text"></label>
+            </div>
+          </section>
+
+          <section class="quiz-admin-language">
+            <h3>AR</h3>
+            <label class="quiz-admin-field">
+              <span>Question AR</span>
+              <textarea id="quizAdminQuestionAr" rows="2"></textarea>
+            </label>
+            <div class="quiz-admin-options-grid">
+              <label class="quiz-admin-field"><span>Option A AR</span><input id="quizAdminOptionAr0" type="text"></label>
+              <label class="quiz-admin-field"><span>Option B AR</span><input id="quizAdminOptionAr1" type="text"></label>
+              <label class="quiz-admin-field"><span>Option C AR</span><input id="quizAdminOptionAr2" type="text"></label>
+              <label class="quiz-admin-field"><span>Option D AR</span><input id="quizAdminOptionAr3" type="text"></label>
+            </div>
+          </section>
+        </div>
+
+        <div class="quiz-admin-actions">
+          <button type="button" class="quiz-primary-btn" id="quizAdminSaveBtn">Enregistrer</button>
+          <button type="button" class="quiz-nav-btn quiz-nav-btn--soft" id="quizAdminDeleteBtn">Supprimer</button>
+        </div>
+
+        <p class="quiz-admin-status" id="quizAdminStatus"></p>
+      </section>
+
       <section class="quiz-start-panel" id="quizStartPanel">
         <div class="quiz-start-copy">
           <span id="quizModeLabel">Mode d'evaluation</span>
