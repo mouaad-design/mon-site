@@ -303,6 +303,15 @@ body.rtl {
   text-align: center;
 }
 
+body.rtl .gps-card,
+body.rtl .gps-card__content,
+body.rtl .gps-card__meta,
+body.rtl .gps-inline-status,
+body.rtl .gps-detail-status {
+  direction: rtl;
+  text-align: right;
+}
+
 .dashboard-page {
   background:
     radial-gradient(circle at top right, rgba(233, 144, 56, 0.16), transparent 24%),
