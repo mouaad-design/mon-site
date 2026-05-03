@@ -312,6 +312,10 @@ body.rtl .gps-detail-status {
   text-align: right;
 }
 
+body.rtl .gps-card__head {
+  flex-direction: row;
+}
+
 .dashboard-page {
   background:
     radial-gradient(circle at top right, rgba(233, 144, 56, 0.16), transparent 24%),
