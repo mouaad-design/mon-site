@@ -83,16 +83,6 @@
       </section>
 
       <div class="support-content" data-support-content aria-hidden="true">
-        <section class="support-panel support-panel--viewer" data-support-viewer-panel hidden>
-          <div class="support-panel__head">
-            <div>
-              <p class="support-panel__kicker" data-i18n="supportViewerKicker">Mode lecture</p>
-              <h2 data-i18n="supportViewerTitle">Acces Viewer actif</h2>
-            </div>
-            <p class="support-panel__text" data-i18n="supportViewerText">Les utilisateurs Viewer peuvent consulter l'historique mais ne peuvent pas envoyer ni supprimer de message.</p>
-          </div>
-        </section>
-
         <section class="support-panel" data-support-admin-panel>
           <div class="support-panel__head">
             <div>
@@ -153,6 +143,21 @@
                 <input type="text" name="subject" data-support-subject-input placeholder="Sujet du message" required>
               </label>
             </div>
+
+            <div class="support-form-grid">
+              <label class="support-field">
+                <span data-i18n="supportFieldDate">Date</span>
+                <input type="date" name="workDate" data-support-date-input min="2026-01-01">
+              </label>
+
+              <label class="support-field">
+                <span data-i18n="supportFieldWeek">Semaine</span>
+                <input type="week" name="workWeek" data-support-week-input min="2026-W01">
+              </label>
+            </div>
+            <p class="support-panel__text" data-support-schedule-hint data-i18n="supportScheduleHint">
+              Filtre optionnel : date ou semaine (a partir de 2026).
+            </p>
 
             <label class="support-field">
               <span data-i18n="supportFieldDetails">Details</span>

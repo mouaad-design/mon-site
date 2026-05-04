@@ -2,6 +2,8 @@ const QUIZ_LANG_STORAGE_KEY = "sc-training-home-lang";
 const QUIZ_ROLE_STORAGE_KEY = "sc-training-is-admin";
 const QUIZ_LOCATION_ACCESS_KEY = "sc-training-location-access";
 const QUIZ_BANK_STORAGE_KEY = "sc-training-quiz-bank";
+const QUIZ_RESULTS_STORAGE_KEY = "sc-training-quiz-results";
+const QUIZ_VISITOR_MATRICULE_KEY = "sc-training-quiz-visitor-matricule";
 const QUIZ_CLIENT = "stellantis";
 const SESSION_SIZE = 10;
 const OPTION_LETTERS = ["A", "B", "C", "D"];
@@ -19,6 +21,10 @@ const quizUi = {
     startTitle: "Commencer une nouvelle session",
     startText: "Le systeme choisit automatiquement 10 questions differentes a chaque lancement pour renforcer la memorisation et la rigueur qualite.",
     readyState: "Banque de questions prete.",
+    matriculeLabel: "Matricule",
+    matriculePlaceholder: "Entrez votre matricule",
+    matriculeRequired: "Le matricule est obligatoire pour le mode visiteur.",
+    matriculeSaved: "Session enregistree pour le matricule {matricule}.",
     startButton: "Demarrer le quiz",
     runKicker: "Evaluation en cours",
     runTitle: "Question {current} sur {total}",
@@ -86,6 +92,10 @@ const quizUi = {
     startTitle: "Start a new session",
     startText: "The system automatically selects 10 different questions each time to strengthen retention and quality discipline.",
     readyState: "Question bank ready.",
+    matriculeLabel: "Employee ID",
+    matriculePlaceholder: "Enter your employee ID",
+    matriculeRequired: "Employee ID is required in viewer mode.",
+    matriculeSaved: "Session saved for ID {matricule}.",
     startButton: "Start quiz",
     runKicker: "Assessment in progress",
     runTitle: "Question {current} of {total}",
@@ -153,6 +163,10 @@ const quizUi = {
     startTitle: "ابدأ جلسة جديدة",
     startText: "يقوم النظام باختيار 10 أسئلة مختلفة تلقائياً في كل مرة لتعزيز الاستيعاب والانضباط في الجودة.",
     readyState: "بنك الأسئلة جاهز.",
+    matriculeLabel: "رقم التأجير",
+    matriculePlaceholder: "أدخل رقم التأجير",
+    matriculeRequired: "رقم التأجير مطلوب في وضع الزائر.",
+    matriculeSaved: "تم حفظ الجلسة للرقم {matricule}.",
     startButton: "ابدأ الاختبار",
     runKicker: "التقييم قيد التنفيذ",
     runTitle: "السؤال {current} من {total}",
@@ -1082,6 +1096,10 @@ const elements = {
   startTitle: document.getElementById("quizStartTitle"),
   startText: document.getElementById("quizStartText"),
   readyState: document.getElementById("quizReadyState"),
+  visitorGate: document.getElementById("quizVisitorGate"),
+  matriculeLabel: document.getElementById("quizMatriculeLabel"),
+  matriculeInput: document.getElementById("quizMatriculeInput"),
+  matriculeStatus: document.getElementById("quizMatriculeStatus"),
   startButton: document.getElementById("quizStartBtn"),
   startPanel: document.getElementById("quizStartPanel"),
   runPanel: document.getElementById("quizRunPanel"),
@@ -1116,7 +1134,6 @@ const elements = {
   adminKicker: document.getElementById("quizAdminKicker"),
   adminTitle: document.getElementById("quizAdminTitle"),
   adminText: document.getElementById("quizAdminText"),
-  adminResetButton: document.getElementById("quizAdminResetBtn"),
   adminListLabel: document.getElementById("quizAdminListLabel"),
   adminQuestionSelect: document.getElementById("quizAdminQuestionSelect"),
   adminSectionLabel: document.getElementById("quizAdminSectionLabel"),
@@ -1169,6 +1186,66 @@ function requireQuizAccess() {
 
   window.location.replace("./index.html");
   return false;
+}
+
+function getVisitorMatricule() {
+  return String(elements.matriculeInput?.value || "").trim();
+}
+
+function setMatriculeStatus(message = "", isError = false) {
+  if (!elements.matriculeStatus) {
+    return;
+  }
+
+  elements.matriculeStatus.textContent = message;
+  elements.matriculeStatus.classList.toggle("is-wrong", Boolean(isError && message));
+  elements.matriculeStatus.classList.remove("is-correct");
+}
+
+function canStartQuiz() {
+  if (isAdmin()) {
+    return true;
+  }
+
+  const matricule = getVisitorMatricule();
+  if (!matricule) {
+    setMatriculeStatus(quizUi[currentLang].matriculeRequired, true);
+    elements.matriculeInput?.focus();
+    return false;
+  }
+
+  localStorage.setItem(QUIZ_VISITOR_MATRICULE_KEY, matricule);
+  setMatriculeStatus("");
+  return true;
+}
+
+function saveVisitorResult(score, totalQuestions, rate) {
+  if (isAdmin()) {
+    return;
+  }
+
+  const matricule = localStorage.getItem(QUIZ_VISITOR_MATRICULE_KEY) || getVisitorMatricule();
+  if (!matricule) {
+    return;
+  }
+
+  const entry = {
+    matricule,
+    score,
+    totalQuestions,
+    rate,
+    client: QUIZ_CLIENT,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    const previousResults = JSON.parse(localStorage.getItem(QUIZ_RESULTS_STORAGE_KEY) || "[]");
+    const safeResults = Array.isArray(previousResults) ? previousResults : [];
+    safeResults.unshift(entry);
+    localStorage.setItem(QUIZ_RESULTS_STORAGE_KEY, JSON.stringify(safeResults.slice(0, 500)));
+  } catch {
+    // Ignore storage errors to keep quiz flow uninterrupted.
+  }
 }
 
 function getDefaultQuestionBank() {
@@ -1465,6 +1542,10 @@ function setLanguage(lang) {
   setText(elements.startTitle, copy.startTitle);
   setText(elements.startText, copy.startText);
   setText(elements.readyState, copy.readyState);
+  setText(elements.matriculeLabel, copy.matriculeLabel);
+  if (elements.matriculeInput) {
+    elements.matriculeInput.placeholder = copy.matriculePlaceholder;
+  }
   setText(elements.startButton, copy.startButton);
   setText(elements.runKicker, copy.runKicker);
   setText(elements.prevButton, copy.previous);
@@ -1483,7 +1564,6 @@ function setLanguage(lang) {
   setText(elements.adminKicker, copy.adminKicker);
   setText(elements.adminTitle, copy.adminTitle);
   setText(elements.adminText, copy.adminText);
-  setText(elements.adminResetButton, copy.adminNew);
   setText(elements.adminListLabel, copy.adminExisting);
   setText(elements.adminSectionLabel, copy.adminSectionLabel);
   setText(elements.adminCorrectLabel, copy.adminCorrectLabel);
@@ -1498,9 +1578,17 @@ function setLanguage(lang) {
   if (activeQuestions.length > 0) {
     renderQuestion();
   }
+
+  if (elements.visitorGate) {
+    elements.visitorGate.classList.toggle("hidden", isAdmin());
+  }
 }
 
 function startQuiz() {
+  if (!canStartQuiz()) {
+    return;
+  }
+
   activeQuestions = shuffle(quizQuestionBank).slice(0, Math.min(SESSION_SIZE, quizQuestionBank.length));
   answers = new Array(activeQuestions.length).fill(null);
   revealedAnswers = new Array(activeQuestions.length).fill(false);
@@ -1599,6 +1687,14 @@ function showResult() {
   elements.resultMessage.textContent = copy.resultMessages[performanceKey];
   elements.resultStatusCard.classList.toggle("is-pass", performanceKey === "pass");
   elements.resultStatusCard.classList.toggle("is-fail", performanceKey === "fail");
+
+  saveVisitorResult(score, activeQuestions.length, rate);
+  if (!isAdmin()) {
+    const matricule = localStorage.getItem(QUIZ_VISITOR_MATRICULE_KEY) || getVisitorMatricule();
+    if (matricule) {
+      elements.resultNote.textContent = formatText(copy.matriculeSaved, { matricule });
+    }
+  }
 }
 
 elements.langButtons.forEach((button) => {
@@ -1609,6 +1705,19 @@ elements.langButtons.forEach((button) => {
 
 elements.startButton.addEventListener("click", startQuiz);
 elements.restartButton.addEventListener("click", startQuiz);
+
+if (elements.matriculeInput) {
+  const lastMatricule = localStorage.getItem(QUIZ_VISITOR_MATRICULE_KEY) || "";
+  if (lastMatricule) {
+    elements.matriculeInput.value = lastMatricule;
+  }
+
+  elements.matriculeInput.addEventListener("input", () => {
+    if (getVisitorMatricule()) {
+      setMatriculeStatus("");
+    }
+  });
+}
 
 elements.prevButton.addEventListener("click", () => {
   if (currentQuestionIndex === 0) {
@@ -1634,13 +1743,6 @@ elements.submitButton.addEventListener("click", () => {
   }
   showResult();
 });
-
-if (elements.adminResetButton) {
-  elements.adminResetButton.addEventListener("click", () => {
-    resetAdminForm();
-    setAdminStatus("");
-  });
-}
 
 if (elements.adminQuestionSelect) {
   elements.adminQuestionSelect.addEventListener("change", () => {

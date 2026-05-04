@@ -1,8 +1,11 @@
 const STORAGE_KEY = "sc-training-home-lang";
 const LOCATION_ACCESS_KEY = "sc-training-location-access";
+const LOCATION_ACCESS_MODE_KEY = "sc-training-location-access-mode";
+const LOCATION_ACCESS_AT_KEY = "sc-training-location-access-at";
 const CLIENT_STORAGE_KEY = "sc-training-client";
 const SUPPORT_STORAGE_KEY = "sc-training-support-items";
 const ADMIN_STORAGE_KEY = "sc-training-is-admin";
+const VISITOR_ACCESS_DURATION_MS = 30 * 60 * 1000;
 const ADMIN_PASSWORD = "Quality0Defects";
 const COMPANY_LAT = 34.304222;
 const COMPANY_LNG = -6.390333;
@@ -13,6 +16,8 @@ const MAX_LOCATION_ATTEMPTS = 3;
 const SUPPORT_MAX_PHOTOS = 3;
 const SUPPORT_IMAGE_MAX_SIZE = 1280;
 const SUPPORT_IMAGE_QUALITY = 0.78;
+const SUPPORT_MIN_DATE = "2026-01-01";
+const SUPPORT_MIN_WEEK = "2026-W01";
 
 const langButtons = document.querySelectorAll(".lang-btn");
 const translatableNodes = document.querySelectorAll("[data-i18n]");
@@ -59,11 +64,14 @@ const supportFormNode = document.querySelector("[data-support-form]");
 const supportTypeInputNode = document.querySelector("[data-support-type-input]");
 const supportTypeCardNodes = document.querySelectorAll("[data-support-type-card]");
 const supportPriorityInputNode = document.querySelector("[data-support-priority-input]");
+const supportDateInputNode = document.querySelector("[data-support-date-input]");
+const supportWeekInputNode = document.querySelector("[data-support-week-input]");
 const supportPhoneInputNode = document.querySelector("[data-support-phone-input]");
 const supportSubjectInputNode = document.querySelector("[data-support-subject-input]");
 const supportDetailsInputNode = document.querySelector("[data-support-details-input]");
 const supportPhotoInputNode = document.querySelector("[data-support-photo-input]");
 const supportPhotoHelpNode = document.querySelector("[data-support-photo-help]");
+const supportScheduleHintNode = document.querySelector("[data-support-schedule-hint]");
 const supportPhotoPreviewNode = document.querySelector("[data-support-photo-preview]");
 const supportCopyButtonNode = document.querySelector("[data-support-copy-button]");
 const supportStatusNode = document.querySelector("[data-support-status]");
@@ -74,6 +82,7 @@ const adminLoginModal = document.getElementById("adminLoginModal");
 const adminLoginCloseBtn = document.getElementById("adminLoginClose");
 const adminLoginForm = document.getElementById("adminLoginForm");
 const adminPasswordInput = document.getElementById("adminPasswordInput");
+const adminPasswordToggleBtn = document.getElementById("adminPasswordToggle");
 const adminLoginStatusNode = document.getElementById("adminLoginStatus");
 const locationStatus = document.getElementById("locationStatus");
 const locationDetail = document.getElementById("locationDetail");
@@ -603,6 +612,16 @@ function closeAdminLoginModal() {
   adminLoginModal.classList.remove("is-open");
 }
 
+function updateAdminPasswordVisibilityLabel(lang = document.documentElement.lang || "fr") {
+  if (!adminPasswordToggleBtn || !adminPasswordInput) {
+    return;
+  }
+
+  const isVisible = adminPasswordInput.type === "text";
+  adminPasswordToggleBtn.classList.toggle("is-visible", isVisible);
+  adminPasswordToggleBtn.setAttribute("aria-label", getText(lang, isVisible ? "adminPasswordHide" : "adminPasswordShow"));
+}
+
 function openAdminLoginModal(lang = document.documentElement.lang || "fr") {
   if (!adminLoginModal) {
     return;
@@ -613,10 +632,13 @@ function openAdminLoginModal(lang = document.documentElement.lang || "fr") {
   updateAdminLoginStatus(lang);
 
   if (adminPasswordInput) {
+    adminPasswordInput.type = "password";
     adminPasswordInput.value = "";
     adminPasswordInput.placeholder = getText(lang, "adminPasswordPlaceholder");
     window.setTimeout(() => adminPasswordInput.focus(), 20);
   }
+
+  updateAdminPasswordVisibilityLabel(lang);
 }
 
 async function handleAdminLogin(password, lang) {
@@ -634,7 +656,7 @@ async function handleAdminLogin(password, lang) {
       return;
     }
 
-    unlockLocationGate();
+    unlockLocationGate("admin");
     updateAdminLoginStatus(lang, "adminAccessGranted", "success");
     window.setTimeout(() => {
       closeAdminLoginModal();
@@ -663,7 +685,7 @@ async function handleAdminLogin(password, lang) {
         return;
       }
 
-      unlockLocationGate();
+      unlockLocationGate("admin");
       updateAdminLoginStatus(lang, "adminAccessGranted", "success");
       window.setTimeout(() => {
         closeAdminLoginModal();
@@ -680,7 +702,7 @@ async function handleAdminLogin(password, lang) {
     }
 
     setAdminState(true);
-    unlockLocationGate();
+    unlockLocationGate("admin");
     applyRoleUi(lang);
     updateAdminLoginStatus(lang, "adminAccessGranted", "success");
     window.setTimeout(() => {
@@ -697,7 +719,7 @@ async function handleAdminLogin(password, lang) {
       return;
     }
 
-    unlockLocationGate();
+    unlockLocationGate("admin");
     updateAdminLoginStatus(lang, "adminAccessGranted", "success");
     window.setTimeout(() => {
       closeAdminLoginModal();
@@ -805,12 +827,59 @@ function doesEntryMatchSupportLine(entry, lineValue = "") {
   return matchingLabels.includes(normalizedEntryLine);
 }
 
+function getEntryDateKey(entry) {
+  if (!entry || !entry.createdAt) {
+    return "";
+  }
+
+  const dateValue = new Date(entry.createdAt);
+  if (Number.isNaN(dateValue.getTime())) {
+    return "";
+  }
+
+  const year = dateValue.getFullYear();
+  const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+  const day = String(dateValue.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getEntryWeekKey(entry) {
+  if (!entry || !entry.createdAt) {
+    return "";
+  }
+
+  const dateValue = new Date(entry.createdAt);
+  if (Number.isNaN(dateValue.getTime())) {
+    return "";
+  }
+
+  const utcDate = new Date(Date.UTC(dateValue.getFullYear(), dateValue.getMonth(), dateValue.getDate()));
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - (utcDate.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  const weekNumber = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+  return `${utcDate.getUTCFullYear()}-W${String(weekNumber).padStart(2, "0")}`;
+}
+
+function doesEntryMatchScheduleFilter(entry, dateFilter = "", weekFilter = "") {
+  const matchesDate = !dateFilter || getEntryDateKey(entry) === dateFilter;
+  const matchesWeek = !weekFilter || getEntryWeekKey(entry) === weekFilter;
+  return matchesDate && matchesWeek;
+}
+
 function getSupportCenterConfig() {
   const params = new URLSearchParams(window.location.search);
   const client = params.get("client") || getStoredClient();
   const lineValue = getCurrentSupportLineValue();
+  const dateFilter = (supportDateInputNode && supportDateInputNode.value) || "";
+  const weekFilter = (supportWeekInputNode && supportWeekInputNode.value) || "";
   const entries = getSupportEntries()
-    .filter((entry) => entry.client === client && doesEntryMatchSupportLine(entry, lineValue))
+    .filter((entry) => {
+      return (
+        entry.client === client &&
+        doesEntryMatchSupportLine(entry, lineValue) &&
+        doesEntryMatchScheduleFilter(entry, dateFilter, weekFilter)
+      );
+    })
     .sort((firstEntry, secondEntry) => {
       return new Date(secondEntry.createdAt).getTime() - new Date(firstEntry.createdAt).getTime();
     });
@@ -1350,7 +1419,10 @@ function renderSupportHistory(lang) {
     detailsNode.className = "support-history-item__details";
     detailsNode.textContent = entry.details || "";
 
-    const metaValues = [translatedLine, entry.senderPhone].filter(Boolean);
+    const metaValues = [
+      translatedLine,
+      entry.senderPhone
+    ].filter(Boolean);
 
     itemNode.append(topNode, subjectNode, detailsNode);
 
@@ -1442,6 +1514,18 @@ function updateSupportCenter(lang) {
     supportDetailsInputNode.placeholder = getText(lang, "supportPlaceholderDetails");
   }
 
+  if (supportDateInputNode) {
+    supportDateInputNode.min = SUPPORT_MIN_DATE;
+  }
+
+  if (supportWeekInputNode) {
+    supportWeekInputNode.min = SUPPORT_MIN_WEEK;
+  }
+
+  if (supportScheduleHintNode) {
+    supportScheduleHintNode.textContent = getText(lang, "supportScheduleHint");
+  }
+
   updateSupportPhotoHelp(lang);
   renderSupportPhotoPreview(lang);
   updateSupportLineGate(lang);
@@ -1461,6 +1545,18 @@ function setupSupportCenter() {
   if (supportLineSelectNode) {
     supportLineSelectNode.addEventListener("change", () => {
       updateSupportCenter(document.documentElement.lang || "fr");
+    });
+  }
+
+  if (supportDateInputNode) {
+    supportDateInputNode.addEventListener("change", () => {
+      renderSupportHistory(document.documentElement.lang || "fr");
+    });
+  }
+
+  if (supportWeekInputNode) {
+    supportWeekInputNode.addEventListener("change", () => {
+      renderSupportHistory(document.documentElement.lang || "fr");
     });
   }
 
@@ -2096,6 +2192,8 @@ function setLanguage(lang) {
     adminPasswordInput.placeholder = getText(lang, "adminPasswordPlaceholder");
   }
 
+  updateAdminPasswordVisibilityLabel(lang);
+
   localStorage.setItem(STORAGE_KEY, lang);
 }
 
@@ -2248,12 +2346,46 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return earthRadius * c;
 }
 
-function unlockLocationGate() {
+function unlockLocationGate(mode = "visitor") {
   sessionStorage.setItem(LOCATION_ACCESS_KEY, "granted");
+  sessionStorage.setItem(LOCATION_ACCESS_MODE_KEY, mode);
+
+  if (mode === "visitor") {
+    sessionStorage.setItem(LOCATION_ACCESS_AT_KEY, String(Date.now()));
+  } else {
+    sessionStorage.removeItem(LOCATION_ACCESS_AT_KEY);
+  }
 }
 
 function hasLocationAccess() {
-  return sessionStorage.getItem(LOCATION_ACCESS_KEY) === "granted";
+  const granted = sessionStorage.getItem(LOCATION_ACCESS_KEY) === "granted";
+  if (!granted) {
+    return false;
+  }
+
+  const mode = sessionStorage.getItem(LOCATION_ACCESS_MODE_KEY) || "visitor";
+  if (mode !== "visitor") {
+    return true;
+  }
+
+  const grantedAt = Number(sessionStorage.getItem(LOCATION_ACCESS_AT_KEY) || "0");
+  if (!grantedAt || Number.isNaN(grantedAt)) {
+    sessionStorage.removeItem(LOCATION_ACCESS_KEY);
+    sessionStorage.removeItem(LOCATION_ACCESS_MODE_KEY);
+    sessionStorage.removeItem(LOCATION_ACCESS_AT_KEY);
+    return false;
+  }
+
+  const isExpired = Date.now() - grantedAt > VISITOR_ACCESS_DURATION_MS;
+  if (isExpired) {
+    sessionStorage.removeItem(LOCATION_ACCESS_KEY);
+    sessionStorage.removeItem(LOCATION_ACCESS_MODE_KEY);
+    sessionStorage.removeItem(LOCATION_ACCESS_AT_KEY);
+    setAdminState(false);
+    return false;
+  }
+
+  return true;
 }
 
 function getEffectiveRadius(position) {
@@ -2278,7 +2410,7 @@ function handleLocationSuccess(position) {
 
   if (distance <= effectiveRadius) {
     setAdminState(false);
-    unlockLocationGate();
+    unlockLocationGate("visitor");
     locationRequestInProgress = false;
     setLocationStatusByKey(lang, "locationGranted", "success");
     setLocationDetail(detailMessage);
@@ -2447,6 +2579,13 @@ function setupLocationGate() {
     adminLoginForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       await handleAdminLogin((adminPasswordInput && adminPasswordInput.value.trim()) || "", document.documentElement.lang || "fr");
+    });
+  }
+
+  if (adminPasswordToggleBtn && adminPasswordInput) {
+    adminPasswordToggleBtn.addEventListener("click", () => {
+      adminPasswordInput.type = adminPasswordInput.type === "password" ? "text" : "password";
+      updateAdminPasswordVisibilityLabel(document.documentElement.lang || "fr");
     });
   }
 

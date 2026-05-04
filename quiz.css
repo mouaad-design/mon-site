@@ -288,6 +288,14 @@
   font-weight: 700;
 }
 
+.quiz-visitor-gate {
+  margin: 0 0 18px;
+}
+
+.quiz-visitor-gate .quiz-inline-message {
+  margin-top: 8px;
+}
+
 .quiz-start-actions,
 .quiz-run-actions {
   display: flex;

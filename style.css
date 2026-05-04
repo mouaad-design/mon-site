@@ -887,6 +887,57 @@ body.rtl .login-card {
   color: #ffffff;
 }
 
+.admin-login-password-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-password-toggle {
+  width: 42px;
+  min-height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-password-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.admin-password-toggle__icon {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.admin-password-toggle__icon--off {
+  display: none;
+}
+
+.admin-password-toggle.is-visible .admin-password-toggle__icon--open {
+  display: none;
+}
+
+.admin-password-toggle.is-visible .admin-password-toggle__icon--off {
+  display: block;
+}
+
 .admin-login-actions {
   display: flex;
   justify-content: flex-end;
@@ -2905,6 +2956,10 @@ body.rtl .document-viewer-doc-link {
   display: none;
 }
 
+.dashboard-mini-logo--client-mobile {
+  display: none;
+}
+
 .dashboard-mini-logo--ambient {
   overflow: hidden;
   background:
@@ -3777,6 +3832,18 @@ body.rtl .summary-card::before {
 
   .dashboard-mini-logo--mobile-secondary {
     display: flex;
+  }
+
+  .dashboard-mini-logo--aptiv {
+    display: none;
+  }
+
+  .dashboard-mini-logo--client-mobile {
+    display: flex;
+  }
+
+  .dashboard-summary .summary-card--client {
+    display: none;
   }
 
   .dashboard-dual-logos--single::after {

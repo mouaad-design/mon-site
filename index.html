@@ -91,7 +91,20 @@
             <form id="adminLoginForm" class="admin-login-form">
               <label class="admin-login-field">
                 <span data-i18n="adminPasswordLabel">Mot de passe</span>
-                <input id="adminPasswordInput" type="password" autocomplete="current-password" inputmode="text">
+                <div class="admin-login-password-wrap">
+                  <input id="adminPasswordInput" type="password" autocomplete="current-password" inputmode="text">
+                  <button id="adminPasswordToggle" type="button" class="admin-password-toggle" aria-label="Afficher le mot de passe">
+                    <svg class="admin-password-toggle__icon admin-password-toggle__icon--open" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M1.5 12s3.6-6.5 10.5-6.5S22.5 12 22.5 12s-3.6 6.5-10.5 6.5S1.5 12 1.5 12Z"></path>
+                      <circle cx="12" cy="12" r="3.4"></circle>
+                    </svg>
+                    <svg class="admin-password-toggle__icon admin-password-toggle__icon--off" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M1.5 12s3.6-6.5 10.5-6.5S22.5 12 22.5 12s-3.6 6.5-10.5 6.5S1.5 12 1.5 12Z"></path>
+                      <circle cx="12" cy="12" r="3.4"></circle>
+                      <path d="M3 3l18 18"></path>
+                    </svg>
+                  </button>
+                </div>
               </label>
 
               <div class="admin-login-actions">
