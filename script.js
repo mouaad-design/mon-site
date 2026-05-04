@@ -578,10 +578,17 @@ async function syncAdminSession() {
     const response = await fetch("./api/admin/status", {
       credentials: "same-origin"
     });
+    if (!response.ok) {
+      applyRoleUi(document.documentElement.lang || "fr");
+      return;
+    }
+
     const payload = await response.json();
-    setAdminState(Boolean(payload && payload.isAdmin));
+    if (payload && typeof payload.isAdmin === "boolean") {
+      setAdminState(payload.isAdmin);
+    }
   } catch {
-    setAdminState(false);
+    // Keep local admin state when the Node API is unavailable (static hosting).
   }
 
   applyRoleUi(document.documentElement.lang || "fr");
@@ -646,6 +653,25 @@ async function handleAdminLogin(password, lang) {
       body: JSON.stringify({ password })
     });
 
+    if (response.status === 404 || response.status === 405) {
+      const granted = password === ADMIN_PASSWORD;
+      setAdminState(granted);
+      applyRoleUi(lang);
+
+      if (!granted) {
+        updateAdminLoginStatus(lang, "adminAccessDenied", "error");
+        return;
+      }
+
+      unlockLocationGate();
+      updateAdminLoginStatus(lang, "adminAccessGranted", "success");
+      window.setTimeout(() => {
+        closeAdminLoginModal();
+        openClientSelection();
+      }, 550);
+      return;
+    }
+
     if (!response.ok) {
       setAdminState(false);
       updateAdminLoginStatus(lang, "adminAccessDenied", "error");
@@ -662,9 +688,21 @@ async function handleAdminLogin(password, lang) {
       openClientSelection();
     }, 550);
   } catch {
-    setAdminState(false);
+    const granted = password === ADMIN_PASSWORD;
+    setAdminState(granted);
     applyRoleUi(lang);
-    updateAdminLoginStatus(lang, "adminServerUnavailable", "error");
+
+    if (!granted) {
+      updateAdminLoginStatus(lang, "adminAccessDenied", "error");
+      return;
+    }
+
+    unlockLocationGate();
+    updateAdminLoginStatus(lang, "adminAccessGranted", "success");
+    window.setTimeout(() => {
+      closeAdminLoginModal();
+      openClientSelection();
+    }, 550);
   }
 }
 
