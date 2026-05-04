@@ -3598,14 +3598,17 @@ body.rtl .summary-card::before {
     font-size: 0.7rem;
   }
 
-  .document-viewer-upload__action {
-    width: 100%;
-  }
-
   .document-viewer-upload {
     width: 100%;
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .document-viewer-upload__action {
+    width: auto;
+    flex: 0 0 auto;
   }
 
   .document-viewer-library__meta {
