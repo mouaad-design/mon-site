@@ -1,6 +1,10 @@
+require("dotenv").config();
+
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { handleComplaintsApi } = require("./api/complaints");
+const { handleQuizResultsApi } = require("./api/quizResults");
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
@@ -9,6 +13,11 @@ const MANIFEST_PATH = path.join(DOCUMENTS_DIR, "document-manifest.json");
 const ADMIN_PASSWORD = "Quality0Defects";
 const ADMIN_COOKIE_NAME = "sc_training_admin";
 const ADMIN_COOKIE_VALUE = "active";
+const ADMIN_SESSION_SECONDS = 8 * 60 * 60;
+const MAX_REQUEST_BODY_BYTES = 150 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -74,7 +83,7 @@ function requireAdmin(request, response) {
 }
 
 function setAdminCookie(response) {
-  response.setHeader("Set-Cookie", `${ADMIN_COOKIE_NAME}=${ADMIN_COOKIE_VALUE}; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800`);
+  response.setHeader("Set-Cookie", `${ADMIN_COOKIE_NAME}=${ADMIN_COOKIE_VALUE}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${ADMIN_SESSION_SECONDS}`);
 }
 
 function readRequestBody(request) {
@@ -84,7 +93,7 @@ function readRequestBody(request) {
     request.on("data", (chunk) => {
       body += chunk;
 
-      if (body.length > 80 * 1024 * 1024) {
+      if (body.length > MAX_REQUEST_BODY_BYTES) {
         reject(new Error("Request too large"));
         request.destroy();
       }
@@ -110,6 +119,26 @@ function safeFileName(fileName) {
   const extension = safeSegment(parsed.ext.replace(".", ""), "pdf");
   const baseName = safeSegment(parsed.name, "document");
   return `${baseName}.${extension}`;
+}
+
+function isVideoUpload(mediaType, fileName) {
+  return String(mediaType || "").toLowerCase().startsWith("video/") || /\.(mp4|webm|ogg|mov)$/i.test(fileName || "");
+}
+
+function isPhotoUpload(mediaType, fileName) {
+  return String(mediaType || "").toLowerCase().startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fileName || "");
+}
+
+function getUploadByteLimit(mediaType, fileName) {
+  if (isVideoUpload(mediaType, fileName)) {
+    return MAX_VIDEO_BYTES;
+  }
+
+  if (isPhotoUpload(mediaType, fileName)) {
+    return MAX_PHOTO_BYTES;
+  }
+
+  return MAX_DOCUMENT_BYTES;
 }
 
 function normalizeDocumentIdentity(value = "") {
@@ -171,6 +200,13 @@ async function saveDocument(request, response) {
     const dataUrl = String(payload.dataUrl || "");
     const base64 = dataUrl.includes(",") ? dataUrl.split(",").pop() : dataUrl;
     const buffer = Buffer.from(base64, "base64");
+    const maxBytes = getUploadByteLimit(mediaType, title);
+
+    if (buffer.length > maxBytes) {
+      sendJson(response, 413, { error: "File too large" });
+      return;
+    }
+
     const fileName = safeFileName(title);
     const clientDir = path.join(DOCUMENTS_DIR, client);
     const savedPath = path.join(clientDir, fileName);
@@ -227,12 +263,16 @@ async function deleteDocument(request, response) {
       fs.unlinkSync(diskPath);
     }
 
+    const wasServerManaged = manifest.documents.some((documentItem) => documentItem.path === documentPath);
+
     manifest.documents = manifest.documents.filter((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
       const sameDocument = documentItem.path === documentPath || documentIdentity(documentItem) === identity;
       return !(sameLibrary && sameDocument);
     });
-    manifest.deletedPaths = Array.from(new Set([...(manifest.deletedPaths || []), documentPath]));
+    manifest.deletedPaths = wasServerManaged
+      ? (manifest.deletedPaths || []).filter((deletedPath) => deletedPath !== documentPath)
+      : Array.from(new Set([...(manifest.deletedPaths || []), documentPath]));
     writeManifest(manifest);
 
     sendJson(response, 200, { ok: true, deletedPaths: manifest.deletedPaths });
@@ -288,6 +328,25 @@ function serveStatic(request, response, url) {
 
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
+  const handledComplaintRequest = await handleComplaintsApi(request, response, url, {
+    readRequestBody,
+    requireAdmin,
+    sendJson
+  });
+
+  if (handledComplaintRequest) {
+    return;
+  }
+
+  const handledQuizResultsRequest = await handleQuizResultsApi(request, response, url, {
+    readRequestBody,
+    requireAdmin,
+    sendJson
+  });
+
+  if (handledQuizResultsRequest) {
+    return;
+  }
 
   if (url.pathname === "/api/documents" && request.method === "GET") {
     url.response = response;

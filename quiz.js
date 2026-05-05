@@ -1,11 +1,13 @@
 const QUIZ_LANG_STORAGE_KEY = "sc-training-home-lang";
 const QUIZ_ROLE_STORAGE_KEY = "sc-training-is-admin";
 const QUIZ_LOCATION_ACCESS_KEY = "sc-training-location-access";
+const QUIZ_LOCATION_ACCESS_MODE_KEY = "sc-training-location-access-mode";
+const QUIZ_LOCATION_ACCESS_AT_KEY = "sc-training-location-access-at";
 const QUIZ_BANK_STORAGE_KEY = "sc-training-quiz-bank";
-const QUIZ_RESULTS_STORAGE_KEY = "sc-training-quiz-results";
 const QUIZ_VISITOR_MATRICULE_KEY = "sc-training-quiz-visitor-matricule";
 const QUIZ_CLIENT = "stellantis";
 const SESSION_SIZE = 10;
+const VISITOR_ACCESS_DURATION_MS = 30 * 60 * 1000;
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 
 const quizUi = {
@@ -78,6 +80,18 @@ const quizUi = {
     adminStatusSaved: "La banque de questions a ete mise a jour.",
     adminStatusDeleted: "La question a ete supprimee.",
     adminStatusMissing: "Completez au minimum les champs FR et les 4 options.",
+    resultsKicker: "Resultats visiteurs",
+    resultsTitle: "Notes enregistrees",
+    resultsRefresh: "Actualiser",
+    resultsLoading: "Chargement des notes...",
+    resultsEmpty: "Aucune note visiteur n'est encore enregistree.",
+    resultsLoadFailed: "Impossible de charger les notes.",
+    resultSaveFailed: "La note n'a pas pu etre sauvegardee dans la base de donnees.",
+    resultsPassed: "Reussi",
+    resultsFailed: "Echoue",
+    resultsMatricule: "Matricule",
+    resultsScore: "Note",
+    resultsDate: "Date",
     confirmDeletePrompt: "Etes-vous sur de vouloir supprimer cet element ?"
   },
   en: {
@@ -149,6 +163,18 @@ const quizUi = {
     adminStatusSaved: "The question bank has been updated.",
     adminStatusDeleted: "The question was deleted.",
     adminStatusMissing: "Please complete at least the FR question and the 4 options.",
+    resultsKicker: "Visitor results",
+    resultsTitle: "Saved scores",
+    resultsRefresh: "Refresh",
+    resultsLoading: "Loading scores...",
+    resultsEmpty: "No visitor score has been saved yet.",
+    resultsLoadFailed: "Scores could not be loaded.",
+    resultSaveFailed: "The score could not be saved in the database.",
+    resultsPassed: "Passed",
+    resultsFailed: "Failed",
+    resultsMatricule: "Employee ID",
+    resultsScore: "Score",
+    resultsDate: "Date",
     confirmDeletePrompt: "Are you sure you want to delete this item?"
   },
   ar: {
@@ -224,6 +250,18 @@ Object.assign(quizUi.ar, {
   adminStatusSaved: "تم تحديث بنك الأسئلة.",
   adminStatusDeleted: "تم حذف السؤال.",
   adminStatusMissing: "يرجى إكمال سؤال FR والخيارات الأربع على الأقل.",
+  resultsKicker: "نتائج الزوار",
+  resultsTitle: "النقاط المحفوظة",
+  resultsRefresh: "تحديث",
+  resultsLoading: "جاري تحميل النقاط...",
+  resultsEmpty: "لا توجد أي نقطة محفوظة للزوار بعد.",
+  resultsLoadFailed: "تعذر تحميل النقاط.",
+  resultSaveFailed: "تعذر حفظ النقطة في قاعدة البيانات.",
+  resultsPassed: "ناجح",
+  resultsFailed: "راسب",
+  resultsMatricule: "رقم التأجير",
+  resultsScore: "النقطة",
+  resultsDate: "التاريخ",
   confirmDeletePrompt: "هل أنت متأكد من رغبتك في الحذف؟"
 });
 
@@ -1148,7 +1186,12 @@ const elements = {
   adminQuestionAr: document.getElementById("quizAdminQuestionAr"),
   adminOptionFr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionFr${index}`)),
   adminOptionEn: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionEn${index}`)),
-  adminOptionAr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionAr${index}`))
+  adminOptionAr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionAr${index}`)),
+  resultsPanel: document.getElementById("quizAdminResultsPanel"),
+  resultsKicker: document.getElementById("quizResultsKicker"),
+  resultsTitle: document.getElementById("quizResultsTitle"),
+  resultsRefreshButton: document.getElementById("quizResultsRefreshBtn"),
+  resultsList: document.getElementById("quizResultsList")
 };
 
 function setText(element, value) {
@@ -1179,11 +1222,60 @@ function isAdmin() {
   return localStorage.getItem(QUIZ_ROLE_STORAGE_KEY) === "true";
 }
 
+function canUseServerApi() {
+  return window.location.protocol !== "file:";
+}
+
+async function syncQuizAdminSession() {
+  if (!canUseServerApi()) {
+    return;
+  }
+
+  try {
+    const response = await fetch("./api/admin/status", {
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = await response.json();
+    if (payload && typeof payload.isAdmin === "boolean") {
+      localStorage.setItem(QUIZ_ROLE_STORAGE_KEY, payload.isAdmin ? "true" : "false");
+      setLanguage(currentLang);
+      renderAdminPanel();
+      if (payload.isAdmin) {
+        loadQuizResults();
+      }
+    }
+  } catch {
+    // Keep the existing local role when the API is unavailable.
+  }
+}
+
 function requireQuizAccess() {
-  if (sessionStorage.getItem(QUIZ_LOCATION_ACCESS_KEY) === "granted") {
+  const granted = sessionStorage.getItem(QUIZ_LOCATION_ACCESS_KEY) === "granted";
+  if (!granted) {
+    window.location.replace("./index.html");
+    return false;
+  }
+
+  const mode = sessionStorage.getItem(QUIZ_LOCATION_ACCESS_MODE_KEY) || "visitor";
+  if (mode !== "visitor") {
     return true;
   }
 
+  const grantedAt = Number(sessionStorage.getItem(QUIZ_LOCATION_ACCESS_AT_KEY) || "0");
+  const isExpired = !grantedAt || Number.isNaN(grantedAt) || Date.now() - grantedAt > VISITOR_ACCESS_DURATION_MS;
+
+  if (!isExpired) {
+    return true;
+  }
+
+  sessionStorage.removeItem(QUIZ_LOCATION_ACCESS_KEY);
+  sessionStorage.removeItem(QUIZ_LOCATION_ACCESS_MODE_KEY);
+  sessionStorage.removeItem(QUIZ_LOCATION_ACCESS_AT_KEY);
   window.location.replace("./index.html");
   return false;
 }
@@ -1219,33 +1311,42 @@ function canStartQuiz() {
   return true;
 }
 
-function saveVisitorResult(score, totalQuestions, rate) {
+async function saveVisitorResult(score, totalQuestions, rate, passed) {
   if (isAdmin()) {
-    return;
+    return true;
   }
 
   const matricule = localStorage.getItem(QUIZ_VISITOR_MATRICULE_KEY) || getVisitorMatricule();
   if (!matricule) {
-    return;
+    return false;
   }
 
-  const entry = {
-    matricule,
-    score,
-    totalQuestions,
-    rate,
-    client: QUIZ_CLIENT,
-    createdAt: new Date().toISOString()
-  };
-
-  try {
-    const previousResults = JSON.parse(localStorage.getItem(QUIZ_RESULTS_STORAGE_KEY) || "[]");
-    const safeResults = Array.isArray(previousResults) ? previousResults : [];
-    safeResults.unshift(entry);
-    localStorage.setItem(QUIZ_RESULTS_STORAGE_KEY, JSON.stringify(safeResults.slice(0, 500)));
-  } catch {
-    // Ignore storage errors to keep quiz flow uninterrupted.
+  if (!canUseServerApi()) {
+    return false;
   }
+
+  const response = await fetch("./api/quiz-results", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      matricule,
+      score,
+      totalQuestions,
+      rate,
+      passed,
+      client: QUIZ_CLIENT,
+      language: currentLang
+    })
+  });
+
+  if (!response.ok) {
+    return false;
+  }
+
+  return true;
 }
 
 function getDefaultQuestionBank() {
@@ -1309,6 +1410,22 @@ function formatText(template, values) {
   return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
 }
 
+function formatQuizResultDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const locale = currentLang === "ar" ? "ar-MA" : currentLang === "en" ? "en-US" : "fr-MA";
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date(value));
+  } catch {
+    return String(value);
+  }
+}
+
 function shuffle(array) {
   const copy = [...array];
   for (let index = copy.length - 1; index > 0; index -= 1) {
@@ -1325,6 +1442,9 @@ let answers = [];
 let revealedAnswers = [];
 let currentQuestionIndex = 0;
 let selectedAdminQuestionId = "";
+let quizResults = [];
+let quizResultsLoading = false;
+let quizResultsLoadFailed = false;
 
 function setPanelVisibility() {
   elements.startPanel.classList.toggle("hidden", activeQuestions.length > 0);
@@ -1338,6 +1458,104 @@ function setAdminStatus(copyKey = "") {
   }
 
   elements.adminStatus.textContent = copyKey ? quizUi[currentLang][copyKey] : "";
+}
+
+function renderQuizResults() {
+  if (!elements.resultsList) {
+    return;
+  }
+
+  const copy = quizUi[currentLang];
+  elements.resultsList.innerHTML = "";
+
+  if (!isAdmin()) {
+    return;
+  }
+
+  if (quizResultsLoading) {
+    const message = document.createElement("p");
+    message.className = "quiz-results-empty";
+    message.textContent = copy.resultsLoading;
+    elements.resultsList.appendChild(message);
+    return;
+  }
+
+  if (quizResultsLoadFailed) {
+    const message = document.createElement("p");
+    message.className = "quiz-results-empty is-error";
+    message.textContent = copy.resultsLoadFailed;
+    elements.resultsList.appendChild(message);
+    return;
+  }
+
+  if (!quizResults.length) {
+    const message = document.createElement("p");
+    message.className = "quiz-results-empty";
+    message.textContent = copy.resultsEmpty;
+    elements.resultsList.appendChild(message);
+    return;
+  }
+
+  quizResults.forEach((result) => {
+    const item = document.createElement("article");
+    item.className = "quiz-result-row";
+
+    const top = document.createElement("div");
+    top.className = "quiz-result-row__top";
+
+    const matricule = document.createElement("strong");
+    matricule.textContent = result.matricule || "-";
+
+    const status = document.createElement("span");
+    status.className = `quiz-result-row__status ${result.passed ? "is-pass" : "is-fail"}`;
+    status.textContent = result.passed ? copy.resultsPassed : copy.resultsFailed;
+
+    top.append(matricule, status);
+
+    const meta = document.createElement("div");
+    meta.className = "quiz-result-row__meta";
+
+    [
+      `${copy.resultsScore}: ${result.score} / ${result.totalQuestions} (${result.rate}%)`,
+      `${copy.resultsDate}: ${formatQuizResultDate(result.createdAt)}`
+    ].forEach((value) => {
+      const pill = document.createElement("span");
+      pill.textContent = value;
+      meta.appendChild(pill);
+    });
+
+    item.append(top, meta);
+    elements.resultsList.appendChild(item);
+  });
+}
+
+async function loadQuizResults() {
+  if (!isAdmin() || !canUseServerApi() || !elements.resultsList) {
+    return;
+  }
+
+  quizResultsLoading = true;
+  quizResultsLoadFailed = false;
+  renderQuizResults();
+
+  try {
+    const response = await fetch("./api/quiz-results", {
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      throw new Error("load_failed");
+    }
+
+    const payload = await response.json();
+    quizResults = Array.isArray(payload.results) ? payload.results : [];
+  } catch {
+    quizResults = [];
+    quizResultsLoadFailed = true;
+  } finally {
+    quizResultsLoading = false;
+    renderQuizResults();
+  }
 }
 
 function resetAdminForm() {
@@ -1457,12 +1675,16 @@ function renderAdminPanel() {
   }
 
   elements.adminPanel.classList.toggle("hidden", !isAdmin());
+  if (elements.resultsPanel) {
+    elements.resultsPanel.classList.toggle("hidden", !isAdmin());
+  }
   if (!isAdmin()) {
     return;
   }
 
   renderAdminSectionOptions();
   renderAdminQuestionSelect();
+  renderQuizResults();
 }
 
 function saveAdminQuestion() {
@@ -1569,8 +1791,12 @@ function setLanguage(lang) {
   setText(elements.adminCorrectLabel, copy.adminCorrectLabel);
   setText(elements.adminSaveButton, copy.adminSave);
   setText(elements.adminDeleteButton, copy.adminDelete);
+  setText(elements.resultsKicker, copy.resultsKicker);
+  setText(elements.resultsTitle, copy.resultsTitle);
+  setText(elements.resultsRefreshButton, copy.resultsRefresh);
 
   renderAdminPanel();
+  renderQuizResults();
   if (selectedAdminQuestionId) {
     fillAdminForm(getQuestionById(selectedAdminQuestionId));
   }
@@ -1667,13 +1893,14 @@ function requireAnswer() {
   return false;
 }
 
-function showResult() {
+async function showResult() {
   const score = activeQuestions.reduce((total, question, index) => {
     return total + (answers[index] === question.correct ? 1 : 0);
   }, 0);
   const rate = Math.round((score / activeQuestions.length) * 100);
   const copy = quizUi[currentLang];
   const performanceKey = score >= 9 ? "pass" : "fail";
+  const passed = performanceKey === "pass";
 
   elements.runPanel.classList.add("hidden");
   elements.resultPanel.classList.remove("hidden");
@@ -1688,11 +1915,13 @@ function showResult() {
   elements.resultStatusCard.classList.toggle("is-pass", performanceKey === "pass");
   elements.resultStatusCard.classList.toggle("is-fail", performanceKey === "fail");
 
-  saveVisitorResult(score, activeQuestions.length, rate);
   if (!isAdmin()) {
     const matricule = localStorage.getItem(QUIZ_VISITOR_MATRICULE_KEY) || getVisitorMatricule();
     if (matricule) {
-      elements.resultNote.textContent = formatText(copy.matriculeSaved, { matricule });
+      const saved = await saveVisitorResult(score, activeQuestions.length, rate, passed);
+      elements.resultNote.textContent = saved
+        ? formatText(copy.matriculeSaved, { matricule })
+        : copy.resultSaveFailed;
     }
   }
 }
@@ -1737,11 +1966,13 @@ elements.nextButton.addEventListener("click", () => {
   }
 });
 
-elements.submitButton.addEventListener("click", () => {
+elements.submitButton.addEventListener("click", async () => {
   if (!requireAnswer()) {
     return;
   }
-  showResult();
+  elements.submitButton.disabled = true;
+  await showResult();
+  elements.submitButton.disabled = false;
 });
 
 if (elements.adminQuestionSelect) {
@@ -1760,9 +1991,15 @@ if (elements.adminDeleteButton) {
   elements.adminDeleteButton.addEventListener("click", deleteAdminQuestion);
 }
 
+if (elements.resultsRefreshButton) {
+  elements.resultsRefreshButton.addEventListener("click", loadQuizResults);
+}
+
 if (requireQuizAccess()) {
   setLanguage(currentLang);
   renderAdminPanel();
   resetAdminForm();
+  loadQuizResults();
+  syncQuizAdminSession();
   setPanelVisibility();
 }

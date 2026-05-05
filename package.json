@@ -1,5 +1,11 @@
 {
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js && node --check api/complaints.js && node --check api/quizResults.js && node --check config/database.js && node --check config/cloudinary.js && node --check models/Complaint.js && node --check models/QuizResult.js && node --check services/cloudinaryImages.js"
+  },
+  "dependencies": {
+    "cloudinary": "^2.0.0",
+    "dotenv": "^16.0.0",
+    "mongoose": "^8.0.0"
   }
 }

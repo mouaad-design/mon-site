@@ -3,7 +3,6 @@ const LOCATION_ACCESS_KEY = "sc-training-location-access";
 const LOCATION_ACCESS_MODE_KEY = "sc-training-location-access-mode";
 const LOCATION_ACCESS_AT_KEY = "sc-training-location-access-at";
 const CLIENT_STORAGE_KEY = "sc-training-client";
-const SUPPORT_STORAGE_KEY = "sc-training-support-items";
 const ADMIN_STORAGE_KEY = "sc-training-is-admin";
 const VISITOR_ACCESS_DURATION_MS = 30 * 60 * 1000;
 const ADMIN_PASSWORD = "Quality0Defects";
@@ -14,8 +13,13 @@ const PRACTICAL_RADIUS_METERS = 150;
 const MAX_ACCURACY_BONUS_METERS = 180;
 const MAX_LOCATION_ATTEMPTS = 3;
 const SUPPORT_MAX_PHOTOS = 3;
+const SUPPORT_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 const SUPPORT_IMAGE_MAX_SIZE = 1280;
 const SUPPORT_IMAGE_QUALITY = 0.78;
+const SUPPORT_ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"];
+const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
+const DOCUMENT_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+const DOCUMENT_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
 const SUPPORT_MIN_DATE = "2026-01-01";
 const SUPPORT_MIN_WEEK = "2026-W01";
 
@@ -66,6 +70,7 @@ const supportTypeCardNodes = document.querySelectorAll("[data-support-type-card]
 const supportPriorityInputNode = document.querySelector("[data-support-priority-input]");
 const supportDateInputNode = document.querySelector("[data-support-date-input]");
 const supportWeekInputNode = document.querySelector("[data-support-week-input]");
+const supportWeekFilterNode = document.querySelector("[data-support-week-filter]");
 const supportPhoneInputNode = document.querySelector("[data-support-phone-input]");
 const supportSubjectInputNode = document.querySelector("[data-support-subject-input]");
 const supportDetailsInputNode = document.querySelector("[data-support-details-input]");
@@ -101,6 +106,8 @@ let supportStatusKey = "supportStatusIdle";
 let selectedSupportLine = "";
 let supportPhotoItems = [];
 let supportPhotoProcessing = false;
+let supportEntries = [];
+let supportEntriesLoading = false;
 let documentSelectionOverride = "";
 let pdfRenderToken = 0;
 let activeGalleryItems = [];
@@ -331,6 +338,30 @@ function isVideoDocument(documentItem) {
   }
 
   return /\.(mp4|webm|ogg|mov)$/i.test(documentItem.path || "");
+}
+
+function getDocumentUploadLimit(file) {
+  const fileName = file && file.name ? file.name : "";
+  const mediaType = file && file.type ? file.type.toLowerCase() : "";
+
+  if (mediaType.startsWith("video/") || /\.(mp4|webm|ogg|mov)$/i.test(fileName)) {
+    return {
+      bytes: DOCUMENT_VIDEO_MAX_BYTES,
+      errorKey: "documentPageVideoSizeLimit"
+    };
+  }
+
+  if (mediaType.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fileName)) {
+    return {
+      bytes: DOCUMENT_PHOTO_MAX_BYTES,
+      errorKey: "documentPagePhotoSizeLimit"
+    };
+  }
+
+  return {
+    bytes: DOCUMENT_MAX_BYTES,
+    errorKey: "documentPageDocumentSizeLimit"
+  };
 }
 
 function isPdfDocument(documentItem, documentPath = "") {
@@ -765,23 +796,7 @@ function getStoredClient() {
 }
 
 function getSupportEntries() {
-  try {
-    const rawEntries = localStorage.getItem(SUPPORT_STORAGE_KEY);
-    const parsedEntries = JSON.parse(rawEntries || "[]");
-    if (!Array.isArray(parsedEntries)) {
-      return [];
-    }
-
-    const cleanedEntries = parsedEntries.filter((entry) => !shouldDiscardSupportTestEntry(entry));
-
-    if (cleanedEntries.length !== parsedEntries.length) {
-      saveSupportEntries(cleanedEntries);
-    }
-
-    return cleanedEntries;
-  } catch {
-    return [];
-  }
+  return supportEntries.filter((entry) => !shouldDiscardSupportTestEntry(entry));
 }
 
 function shouldDiscardSupportTestEntry(entry) {
@@ -793,6 +808,53 @@ function shouldDiscardSupportTestEntry(entry) {
   const details = String(entry.details || "").trim().toLowerCase();
 
   return subject === "k" && details === "k";
+}
+
+async function loadSupportEntries(lang = document.documentElement.lang || "fr") {
+  if (!supportHistoryNode || !canUseServerApi()) {
+    return;
+  }
+
+  supportEntriesLoading = true;
+  renderSupportHistory(lang);
+
+  try {
+    const response = await fetch("./api/complaints", {
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      throw new Error("load_failed");
+    }
+
+    const payload = await response.json();
+    supportEntries = Array.isArray(payload.complaints) ? payload.complaints : [];
+  } catch {
+    supportEntries = [];
+    updateSupportStatus(lang, "supportStatusLoadFailed", "error");
+  } finally {
+    supportEntriesLoading = false;
+    renderSupportHistory(lang);
+  }
+}
+
+async function createSupportEntry(entry) {
+  const response = await fetch("./api/complaints", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(entry)
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || "save_failed");
+  }
+
+  return payload.complaint;
 }
 
 function getCurrentSupportLineValue() {
@@ -871,7 +933,10 @@ function getSupportCenterConfig() {
   const client = params.get("client") || getStoredClient();
   const lineValue = getCurrentSupportLineValue();
   const dateFilter = (supportDateInputNode && supportDateInputNode.value) || "";
-  const weekFilter = (supportWeekInputNode && supportWeekInputNode.value) || "";
+  const weekFilter =
+    (supportWeekFilterNode && supportWeekFilterNode.value) ||
+    (supportWeekInputNode && supportWeekInputNode.value) ||
+    "";
   const entries = getSupportEntries()
     .filter((entry) => {
       return (
@@ -913,6 +978,18 @@ function getSupportPriorityLabelKey(priority = "normal") {
   }
 
   return "supportPriorityNormal";
+}
+
+function getSupportStatusLabelKey(status = "pending") {
+  if (status === "in_progress") {
+    return "complaintStatusInProgress";
+  }
+
+  if (status === "resolved") {
+    return "complaintStatusResolved";
+  }
+
+  return "complaintStatusPending";
 }
 
 function getSupportLineLabelKey(lineValue = "") {
@@ -1022,16 +1099,19 @@ function formatSupportDate(value, lang) {
 }
 
 function buildSupportDraft(client) {
+  const lineLabel = getSelectedSupportLineLabel();
+
   return {
+    name: lineLabel || getText(document.documentElement.lang || "fr", getClientTranslationKey(client)),
     client,
-    line: getSelectedSupportLineLabel(),
+    line: lineLabel,
     lineValue: selectedSupportLine || (supportLineInputNode && supportLineInputNode.value) || "",
     type: (supportTypeInputNode && supportTypeInputNode.value) || "message",
     priority: (supportPriorityInputNode && supportPriorityInputNode.value) || "normal",
     senderPhone: (supportPhoneInputNode && supportPhoneInputNode.value.trim()) || "",
     subject: (supportSubjectInputNode && supportSubjectInputNode.value.trim()) || "",
     details: (supportDetailsInputNode && supportDetailsInputNode.value.trim()) || "",
-    attachments: supportPhotoItems.map((item) => ({
+    images: supportPhotoItems.map((item) => ({
       name: item.name,
       type: item.type,
       dataUrl: item.dataUrl
@@ -1058,8 +1138,14 @@ function buildSupportMessage(entry, lang) {
     lines.push(`${getText(lang, "supportFieldPhone")}: ${entry.senderPhone}`);
   }
 
-  if (Array.isArray(entry.attachments) && entry.attachments.length) {
-    lines.push(`${getText(lang, "supportLabelPhotos")}: ${entry.attachments.length}`);
+  const imageCount = Array.isArray(entry.imageUrls)
+    ? entry.imageUrls.length
+    : Array.isArray(entry.images)
+      ? entry.images.length
+      : 0;
+
+  if (imageCount) {
+    lines.push(`${getText(lang, "supportLabelPhotos")}: ${imageCount}`);
   }
 
   lines.push(`${getText(lang, "supportFieldSubject")}: ${entry.subject || ""}`);
@@ -1107,16 +1193,7 @@ async function copyTextToClipboard(text) {
   return copied;
 }
 
-function saveSupportEntries(entries) {
-  try {
-    localStorage.setItem(SUPPORT_STORAGE_KEY, JSON.stringify(entries.slice(0, 120)));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function deleteSupportEntry(entryId, lang) {
+async function deleteSupportEntry(entryId, lang) {
   if (!entryId) {
     return;
   }
@@ -1125,16 +1202,53 @@ function deleteSupportEntry(entryId, lang) {
     return;
   }
 
-  const nextEntries = getSupportEntries().filter((entry) => entry.id !== entryId);
-  const deleted = saveSupportEntries(nextEntries);
+  try {
+    const response = await fetch(`./api/complaints/${encodeURIComponent(entryId)}`, {
+      method: "DELETE",
+      credentials: "same-origin"
+    });
 
-  if (!deleted) {
+    if (!response.ok) {
+      throw new Error("delete_failed");
+    }
+
+    supportEntries = supportEntries.filter((entry) => entry.id !== entryId);
+    renderSupportHistory(lang);
+    updateSupportStatus(lang, "supportStatusDeleted", "success");
+  } catch {
     updateSupportStatus(lang, "supportStatusDeleteFailed", "error");
+  }
+}
+
+async function updateSupportEntryStatus(entryId, status, lang) {
+  if (!entryId || !status) {
     return;
   }
 
-  renderSupportHistory(lang);
-  updateSupportStatus(lang, "supportStatusDeleted", "success");
+  try {
+    const response = await fetch(`./api/complaints/${encodeURIComponent(entryId)}/status`, {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status })
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload.complaint) {
+      throw new Error("status_failed");
+    }
+
+    supportEntries = supportEntries.map((entry) => {
+      return entry.id === entryId ? payload.complaint : entry;
+    });
+    renderSupportHistory(lang);
+    updateSupportStatus(lang, "supportStatusUpdated", "success");
+  } catch {
+    updateSupportStatus(lang, "supportStatusUpdateFailed", "error");
+    renderSupportHistory(lang);
+  }
 }
 
 function readFileAsDataUrl(file) {
@@ -1257,10 +1371,21 @@ function resetSupportPhotoSelection(lang) {
 }
 
 async function handleSupportPhotoSelection(fileList, lang) {
-  const files = Array.from(fileList || []).filter((file) => file && /^image\//i.test(file.type));
+  const selectedFiles = Array.from(fileList || []).filter(Boolean);
+  const hasInvalidType = selectedFiles.some((file) => !SUPPORT_ALLOWED_IMAGE_TYPES.includes(file.type));
+  const hasOversizedFile = selectedFiles.some((file) => file.size > SUPPORT_IMAGE_MAX_BYTES);
+  const files = selectedFiles.filter((file) => SUPPORT_ALLOWED_IMAGE_TYPES.includes(file.type));
 
-  if (!files.length) {
+  if (!files.length || hasInvalidType) {
     updateSupportStatus(lang, "supportStatusPhotoType", "error");
+    if (supportPhotoInputNode) {
+      supportPhotoInputNode.value = "";
+    }
+    return;
+  }
+
+  if (hasOversizedFile) {
+    updateSupportStatus(lang, "supportStatusPhotoSize", "error");
     if (supportPhotoInputNode) {
       supportPhotoInputNode.value = "";
     }
@@ -1356,6 +1481,14 @@ function renderSupportHistory(lang) {
   const { entries } = getSupportCenterConfig();
   supportHistoryNode.innerHTML = "";
 
+  if (supportEntriesLoading) {
+    const loadingNode = document.createElement("p");
+    loadingNode.className = "support-history-empty";
+    loadingNode.textContent = getText(lang, "supportStatusLoading");
+    supportHistoryNode.appendChild(loadingNode);
+    return;
+  }
+
   if (!entries.length) {
     const emptyNode = document.createElement("p");
     emptyNode.className = "support-history-empty";
@@ -1386,7 +1519,11 @@ function renderSupportHistory(lang) {
     priorityBadgeNode.className = "support-history-item__badge support-history-item__badge--priority";
     priorityBadgeNode.textContent = getText(lang, getSupportPriorityLabelKey(entry.priority));
 
-    badgesNode.append(typeBadgeNode, priorityBadgeNode);
+    const statusBadgeNode = document.createElement("span");
+    statusBadgeNode.className = `support-history-item__badge support-history-item__badge--status support-history-item__badge--${entry.status || "pending"}`;
+    statusBadgeNode.textContent = getText(lang, getSupportStatusLabelKey(entry.status));
+
+    badgesNode.append(typeBadgeNode, priorityBadgeNode, statusBadgeNode);
 
     const dateNode = document.createElement("span");
     dateNode.className = "support-history-item__date";
@@ -1398,6 +1535,23 @@ function renderSupportHistory(lang) {
     actionsNode.append(dateNode);
 
     if (isAdmin()) {
+      const statusSelectNode = document.createElement("select");
+      statusSelectNode.className = "support-history-item__status";
+      statusSelectNode.setAttribute("aria-label", getText(lang, "supportStatusLabel"));
+
+      ["pending", "in_progress", "resolved"].forEach((status) => {
+        const optionNode = document.createElement("option");
+        optionNode.value = status;
+        optionNode.textContent = getText(lang, getSupportStatusLabelKey(status));
+        statusSelectNode.appendChild(optionNode);
+      });
+
+      statusSelectNode.value = entry.status || "pending";
+      statusSelectNode.addEventListener("change", () => {
+        updateSupportEntryStatus(entry.id, statusSelectNode.value, document.documentElement.lang || "fr");
+      });
+      actionsNode.append(statusSelectNode);
+
       const deleteNode = document.createElement("button");
       deleteNode.type = "button";
       deleteNode.className = "support-history-item__delete";
@@ -1439,18 +1593,20 @@ function renderSupportHistory(lang) {
       itemNode.appendChild(metaNode);
     }
 
-    if (Array.isArray(entry.attachments) && entry.attachments.length) {
+    const imageUrls = Array.isArray(entry.imageUrls) ? entry.imageUrls : [];
+
+    if (imageUrls.length) {
       const galleryNode = document.createElement("div");
       galleryNode.className = "support-history-item__gallery";
 
-      entry.attachments.forEach((attachment, attachmentIndex) => {
-        if (!attachment || !attachment.dataUrl) {
+      imageUrls.forEach((imageUrl, attachmentIndex) => {
+        if (!imageUrl) {
           return;
         }
 
         const imageNode = document.createElement("img");
-        imageNode.src = attachment.dataUrl;
-        imageNode.alt = attachment.name || `${getText(lang, "supportFieldPhoto")} ${attachmentIndex + 1}`;
+        imageNode.src = imageUrl;
+        imageNode.alt = `${getText(lang, "supportFieldPhoto")} ${attachmentIndex + 1}`;
         galleryNode.appendChild(imageNode);
       });
 
@@ -1522,6 +1678,10 @@ function updateSupportCenter(lang) {
     supportWeekInputNode.min = SUPPORT_MIN_WEEK;
   }
 
+  if (supportWeekFilterNode) {
+    supportWeekFilterNode.min = SUPPORT_MIN_WEEK;
+  }
+
   if (supportScheduleHintNode) {
     supportScheduleHintNode.textContent = getText(lang, "supportScheduleHint");
   }
@@ -1560,6 +1720,12 @@ function setupSupportCenter() {
     });
   }
 
+  if (supportWeekFilterNode) {
+    supportWeekFilterNode.addEventListener("change", () => {
+      renderSupportHistory(document.documentElement.lang || "fr");
+    });
+  }
+
   if (supportPhotoInputNode) {
     supportPhotoInputNode.addEventListener("change", async (event) => {
       if (!isAdmin()) {
@@ -1581,7 +1747,7 @@ function setupSupportCenter() {
     });
   });
 
-  supportFormNode.addEventListener("submit", (event) => {
+  supportFormNode.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const lang = document.documentElement.lang || "fr";
@@ -1614,11 +1780,12 @@ function setupSupportCenter() {
       return;
     }
 
-    const entries = getSupportEntries();
-    entries.unshift(entry);
-    const saveSucceeded = saveSupportEntries(entries);
+    updateSupportStatus(lang, "supportStatusSaving", "info");
 
-    if (!saveSucceeded) {
+    try {
+      const savedEntry = await createSupportEntry(entry);
+      supportEntries = [savedEntry, ...supportEntries.filter((existingEntry) => existingEntry.id !== savedEntry.id)];
+    } catch {
       updateSupportStatus(lang, "supportStatusSaveFailed", "error");
       return;
     }
@@ -1677,6 +1844,7 @@ function setupSupportCenter() {
   updateSupportPhotoHelp(document.documentElement.lang || "fr");
   updateSupportLineGate(document.documentElement.lang || "fr");
   updateSupportAccess(document.documentElement.lang || "fr");
+  loadSupportEntries(document.documentElement.lang || "fr");
 }
 
 function getClientDocuments(client, section = "quality") {
@@ -1751,6 +1919,12 @@ async function uploadDocumentFile(file, client, section, lang) {
 
   if (!canUseServerApi()) {
     setDocumentActionStatus(lang, "documentPageServerRequired", "error");
+    return;
+  }
+
+  const limit = getDocumentUploadLimit(file);
+  if (file.size > limit.bytes) {
+    setDocumentActionStatus(lang, limit.errorKey, "error");
     return;
   }
 
