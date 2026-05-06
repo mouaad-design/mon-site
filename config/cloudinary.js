@@ -1,14 +1,19 @@
 const { v2: cloudinary } = require("cloudinary");
 
 cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.API_KEY,
-  api_secret: process.env.API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY || process.env.API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET || process.env.API_SECRET,
   secure: true
 });
 
 function assertCloudinaryConfigured() {
-  if (!process.env.CLOUD_NAME || !process.env.API_KEY || !process.env.API_SECRET) {
+  const hasCloudinaryConfig =
+    (process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME) &&
+    (process.env.CLOUDINARY_API_KEY || process.env.API_KEY) &&
+    (process.env.CLOUDINARY_API_SECRET || process.env.API_SECRET);
+
+  if (!hasCloudinaryConfig) {
     throw new Error("Cloudinary environment variables are required");
   }
 }

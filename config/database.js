@@ -15,9 +15,7 @@ async function connectDatabase() {
 
   if (!connectionPromise) {
     mongoose.set("strictQuery", true);
-    connectionPromise = mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 10000
-    });
+    connectionPromise = mongoose.connect(mongoUri);
   }
 
   await connectionPromise;

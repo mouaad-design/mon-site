@@ -4,6 +4,7 @@ const { uploadComplaintImages, cleanupUploadedImages, deleteImagesByUrl } = requ
 
 const VALID_TYPES = new Set(Complaint.VALID_TYPES);
 const VALID_STATUSES = new Set(Complaint.VALID_STATUSES);
+const VALID_PRIORITIES = new Set(Complaint.VALID_PRIORITIES);
 const OBJECT_ID_PATTERN = "[a-f0-9]{24}";
 
 function cleanString(value, fallback = "") {
@@ -23,7 +24,7 @@ function serializeComplaint(complaint) {
     client: complaint.client || "stellantis",
     line: complaint.line || "",
     lineValue: complaint.lineValue || "",
-    priority: complaint.priority || "normal",
+    priority: complaint.priority || "formal",
     senderPhone: complaint.senderPhone || "",
     createdAt: complaint.createdAt
   };
@@ -63,6 +64,7 @@ async function createComplaint(request, response, deps) {
   const subject = cleanString(body.subject);
   const details = cleanString(body.details);
   const name = cleanString(body.name, cleanString(body.line, "Atelier"));
+  const priority = cleanString(body.priority, "formal");
 
   if (!VALID_TYPES.has(type)) {
     sendApiError(sendJson, response, 400, "Invalid complaint type");
@@ -71,6 +73,11 @@ async function createComplaint(request, response, deps) {
 
   if (!subject || !details) {
     sendApiError(sendJson, response, 400, "Subject and details are required");
+    return;
+  }
+
+  if (!VALID_PRIORITIES.has(priority)) {
+    sendApiError(sendJson, response, 400, "Invalid priority");
     return;
   }
 
@@ -90,7 +97,7 @@ async function createComplaint(request, response, deps) {
       client: cleanString(body.client, "stellantis"),
       line: cleanString(body.line),
       lineValue: cleanString(body.lineValue),
-      priority: cleanString(body.priority, "normal"),
+      priority,
       senderPhone: cleanString(body.senderPhone),
       createdAt: new Date()
     });

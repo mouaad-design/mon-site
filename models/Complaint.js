@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const VALID_TYPES = ["message", "recommendation", "complaint"];
 const VALID_STATUSES = ["pending", "in_progress", "resolved"];
+const VALID_PRIORITIES = ["formal", "informal"];
 const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
 
 const complaintSchema = new mongoose.Schema(
@@ -57,8 +58,9 @@ const complaintSchema = new mongoose.Schema(
     },
     priority: {
       type: String,
+      enum: VALID_PRIORITIES,
       trim: true,
-      default: "normal"
+      default: "formal"
     },
     senderPhone: {
       type: String,
@@ -67,8 +69,7 @@ const complaintSchema = new mongoose.Schema(
     },
     createdAt: {
       type: Date,
-      default: Date.now,
-      index: true
+      default: Date.now
     }
   },
   {
@@ -81,3 +82,4 @@ complaintSchema.index({ createdAt: 1 }, { expireAfterSeconds: ONE_YEAR_SECONDS }
 module.exports = mongoose.model("Complaint", complaintSchema);
 module.exports.VALID_TYPES = VALID_TYPES;
 module.exports.VALID_STATUSES = VALID_STATUSES;
+module.exports.VALID_PRIORITIES = VALID_PRIORITIES;

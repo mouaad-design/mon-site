@@ -1,10 +1,13 @@
-require("dotenv").config();
-
+require("dotenv").config({ path: "./.env" });
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const multer = require("multer");
+const { cloudinary, assertCloudinaryConfigured } = require("./config/cloudinary");
+const { connectDatabase } = require("./config/database");
 const { handleComplaintsApi } = require("./api/complaints");
 const { handleQuizResultsApi } = require("./api/quizResults");
+const DashboardMedia = require("./models/DashboardMedia");
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
@@ -18,6 +21,29 @@ const MAX_REQUEST_BODY_BYTES = 150 * 1024 * 1024;
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+const AUTO_MIGRATE_DOCUMENTS = process.env.AUTO_MIGRATE_DOCUMENTS !== "false";
+const TEMP_UPLOAD_DIR = path.join(ROOT_DIR, "temp");
+
+fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
+
+const upload = multer({
+  dest: TEMP_UPLOAD_DIR,
+  limits: {
+    fileSize: MAX_VIDEO_BYTES
+  },
+  fileFilter(request, file, callback) {
+    const mimeType = String(file.mimetype || "").toLowerCase();
+    const isAllowedImage = mimeType.startsWith("image/");
+    const isAllowedVideo = mimeType === "video/mp4";
+
+    if (!isAllowedImage && !isAllowedVideo) {
+      callback(new Error("Only images and mp4 videos are allowed"));
+      return;
+    }
+
+    callback(null, true);
+  }
+});
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -48,6 +74,31 @@ function readManifest() {
 function writeManifest(manifest) {
   fs.mkdirSync(DOCUMENTS_DIR, { recursive: true });
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), "utf8");
+}
+
+function dedupeManifestDocuments(manifest) {
+  const nextManifest = {
+    ...manifest,
+    documents: [],
+    deletedPaths: Array.from(new Set(manifest.deletedPaths || []))
+  };
+  const documentsByIdentity = new Map();
+
+  (manifest.documents || []).forEach((documentItem) => {
+    const key = [
+      documentItem.client || "stellantis",
+      documentItem.section || "quality",
+      documentIdentity(documentItem)
+    ].join(":");
+    const existingDocument = documentsByIdentity.get(key);
+
+    if (!existingDocument || (documentItem.migratedToCloudinary && !existingDocument.migratedToCloudinary)) {
+      documentsByIdentity.set(key, documentItem);
+    }
+  });
+
+  nextManifest.documents = Array.from(documentsByIdentity.values());
+  return nextManifest;
 }
 
 function sendJson(response, statusCode, payload) {
@@ -129,6 +180,10 @@ function isPhotoUpload(mediaType, fileName) {
   return String(mediaType || "").toLowerCase().startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fileName || "");
 }
 
+function isRemoteUrl(value = "") {
+  return /^https?:\/\//i.test(String(value || ""));
+}
+
 function getUploadByteLimit(mediaType, fileName) {
   if (isVideoUpload(mediaType, fileName)) {
     return MAX_VIDEO_BYTES;
@@ -153,7 +208,7 @@ function normalizeDocumentIdentity(value = "") {
 }
 
 function documentIdentity(documentItem) {
-  const title = documentItem.title || path.basename(documentItem.path || "");
+  const title = documentItem.id || documentItem.title || path.basename(documentItem.path || "");
   return normalizeDocumentIdentity(title);
 }
 
@@ -168,10 +223,170 @@ function resolveProjectPath(projectPath) {
   return resolvedPath;
 }
 
+function canDeleteLocalDocumentPath(projectPath = "") {
+  return String(projectPath).startsWith("./documents/") || String(projectPath).startsWith("./video/");
+}
+
+function getCloudinaryPublicIdFromUrl(assetUrl = "") {
+  try {
+    const parsedUrl = new URL(assetUrl);
+    const uploadMarker = "/upload/";
+    const uploadIndex = parsedUrl.pathname.indexOf(uploadMarker);
+
+    if (uploadIndex === -1) {
+      return "";
+    }
+
+    const pathAfterUpload = parsedUrl.pathname.slice(uploadIndex + uploadMarker.length);
+    const withoutVersion = pathAfterUpload.replace(/^v\d+\//, "");
+    return withoutVersion.replace(/\.[a-z0-9]+$/i, "");
+  } catch {
+    return "";
+  }
+}
+
+function getResourceTypeFromDocument(documentItem = {}) {
+  if (documentItem.cloudinaryResourceType) {
+    return documentItem.cloudinaryResourceType;
+  }
+
+  if (isVideoUpload(documentItem.mediaType, documentItem.title || documentItem.path)) {
+    return "video";
+  }
+
+  return "image";
+}
+
+async function destroyCloudinaryMedia(publicId, resourceType = "image") {
+  if (!publicId) {
+    return;
+  }
+
+  assertCloudinaryConfigured();
+  await cloudinary.uploader.destroy(publicId, {
+    resource_type: resourceType || "image",
+    invalidate: true
+  });
+}
+
+async function destroyDocumentCloudinaryMedia(documentItem = {}) {
+  const targets = [];
+
+  if (documentItem.cloudinaryPublicId) {
+    targets.push({
+      publicId: documentItem.cloudinaryPublicId,
+      resourceType: getResourceTypeFromDocument(documentItem)
+    });
+  }
+
+  (documentItem.cloudinaryGallery || []).forEach((galleryItem) => {
+    targets.push({
+      publicId: galleryItem.publicId,
+      resourceType: galleryItem.resourceType || "image"
+    });
+  });
+
+  if (isRemoteUrl(documentItem.path)) {
+    targets.push({
+      publicId: getCloudinaryPublicIdFromUrl(documentItem.path),
+      resourceType: getResourceTypeFromDocument(documentItem)
+    });
+  }
+
+  (documentItem.gallery || []).forEach((galleryPath) => {
+    if (!isRemoteUrl(galleryPath)) {
+      return;
+    }
+
+    targets.push({
+      publicId: getCloudinaryPublicIdFromUrl(galleryPath),
+      resourceType: "image"
+    });
+  });
+
+  const seenTargets = new Set();
+  const uniqueTargets = targets.filter((target) => {
+    const key = `${target.resourceType}:${target.publicId}`;
+    if (!target.publicId || seenTargets.has(key)) {
+      return false;
+    }
+
+    seenTargets.add(key);
+    return true;
+  });
+
+  await Promise.allSettled(uniqueTargets.map((target) => destroyCloudinaryMedia(target.publicId, target.resourceType)));
+}
+
+function deleteLocalDocumentFile(projectPath = "") {
+  if (!projectPath || isRemoteUrl(projectPath)) {
+    return;
+  }
+
+  if (!canDeleteLocalDocumentPath(projectPath)) {
+    throw new Error("Invalid document path");
+  }
+
+  const diskPath = resolveProjectPath(projectPath);
+  if (fs.existsSync(diskPath) && fs.statSync(diskPath).isFile()) {
+    fs.unlinkSync(diskPath);
+  }
+}
+
+function getMigrationDocumentDefinitions() {
+  const presentationSlides = Array.from({ length: 18 }, (_, index) => {
+    return `./documents/stellantis/presentation-operateur/Diapositive${index + 1}.PNG`;
+  });
+
+  return [
+    {
+      id: "caracteres-speciaux-arabe",
+      title: "CARACTÈRES SPÉCIAUX arabe",
+      path: "./documents/stellantis/caracteres-speciaux-arabe.png",
+      mediaType: "image/png",
+      client: "stellantis",
+      section: "quality"
+    },
+    {
+      id: "cs-operateur",
+      title: "Fichier CS operateur",
+      path: "./documents/stellantis/fichier-cs-operateur.png",
+      mediaType: "image/png",
+      client: "stellantis",
+      section: "quality"
+    },
+    {
+      id: "mapping-charge-ar-v2",
+      title: "Mapping charge AR version 2",
+      path: "./documents/stellantis/mapping-charge-ar-version-2.PNG",
+      mediaType: "image/png",
+      client: "stellantis",
+      section: "quality"
+    },
+    {
+      id: "presentation-operateur",
+      title: "Présentation opérateur",
+      path: presentationSlides[0],
+      mediaType: "image/gallery",
+      gallery: presentationSlides,
+      client: "stellantis",
+      section: "training"
+    },
+    {
+      id: "cdpo-training-module",
+      title: "CDPO Training Module",
+      path: "./video/stellantis/CDPO _ Training Module..mp4",
+      mediaType: "video/mp4",
+      client: "stellantis",
+      section: "tutorials"
+    }
+  ];
+}
+
 function getClientDocuments(url) {
   const client = safeSegment(url.searchParams.get("client"), "stellantis");
   const section = safeSegment(url.searchParams.get("section"), "quality");
-  const manifest = readManifest();
+  const manifest = dedupeManifestDocuments(readManifest());
   const documents = manifest.documents.filter(
     (documentItem) => documentItem.client === client && documentItem.section === section
   );
@@ -187,6 +402,8 @@ function sendJsonResponse(response, statusCode, payload) {
 }
 
 async function saveDocument(request, response) {
+  let uploadedResult = null;
+
   try {
     if (!requireAdmin(request, response)) {
       return;
@@ -208,9 +425,12 @@ async function saveDocument(request, response) {
     }
 
     const fileName = safeFileName(title);
-    const clientDir = path.join(DOCUMENTS_DIR, client);
-    const savedPath = path.join(clientDir, fileName);
-    const projectPath = `./documents/${client}/${fileName}`;
+    const cloudinaryDataUrl = dataUrl.startsWith("data:")
+      ? dataUrl
+      : `data:${mediaType || "application/octet-stream"};base64,${base64}`;
+    const result = await uploadToCloudinary(cloudinaryDataUrl, `sc-training/documents/${client}/${section}`);
+    uploadedResult = result;
+    const projectPath = result.secure_url;
     const newDocument = {
       id: safeSegment(path.parse(fileName).name, "document"),
       title,
@@ -218,13 +438,16 @@ async function saveDocument(request, response) {
       mediaType,
       client,
       section,
-      isServerSaved: true
+      isServerSaved: true,
+      cloudinaryPublicId: result.public_id,
+      cloudinaryResourceType: result.resource_type || (isVideoUpload(mediaType, title) ? "video" : "image")
     };
     const identity = documentIdentity(newDocument);
-    const manifest = readManifest();
-
-    fs.mkdirSync(clientDir, { recursive: true });
-    fs.writeFileSync(savedPath, buffer);
+    const manifest = dedupeManifestDocuments(readManifest());
+    const replacedDocuments = manifest.documents.filter((documentItem) => {
+      const sameLibrary = documentItem.client === client && documentItem.section === section;
+      return sameLibrary && documentIdentity(documentItem) === identity;
+    });
 
     manifest.documents = manifest.documents.filter((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
@@ -233,9 +456,16 @@ async function saveDocument(request, response) {
     manifest.documents.push(newDocument);
     manifest.deletedPaths = (manifest.deletedPaths || []).filter((deletedPath) => deletedPath !== projectPath);
     writeManifest(manifest);
+    await Promise.allSettled(replacedDocuments.map((documentItem) => destroyDocumentCloudinaryMedia(documentItem)));
 
     sendJson(response, 200, { document: newDocument });
   } catch (error) {
+    if (uploadedResult && uploadedResult.public_id) {
+      await Promise.allSettled([
+        destroyCloudinaryMedia(uploadedResult.public_id, uploadedResult.resource_type || "image")
+      ]);
+    }
+
     sendJson(response, 400, { error: "Unable to save document" });
   }
 }
@@ -251,33 +481,148 @@ async function deleteDocument(request, response) {
     const section = safeSegment(payload.section, "quality");
     const documentPath = String(payload.path || "");
     const title = String(payload.title || path.basename(documentPath));
-    const manifest = readManifest();
+    const manifest = dedupeManifestDocuments(readManifest());
     const identity = normalizeDocumentIdentity(title);
+    const matchingDocument = manifest.documents.find((documentItem) => {
+      const sameLibrary = documentItem.client === client && documentItem.section === section;
+      const sameDocument = documentItem.path === documentPath || documentIdentity(documentItem) === identity;
+      return sameLibrary && sameDocument;
+    });
+    const deletionPaths = Array.from(
+      new Set([
+        documentPath,
+        ...((matchingDocument && matchingDocument.sourcePaths) || []),
+        ...((matchingDocument && matchingDocument.gallery) || []),
+        ...(Array.isArray(payload.gallery) ? payload.gallery : [])
+      ].filter(Boolean))
+    );
 
-    if (!documentPath.startsWith("./documents/")) {
-      throw new Error("Invalid document path");
-    }
-
-    const diskPath = resolveProjectPath(documentPath);
-    if (fs.existsSync(diskPath)) {
-      fs.unlinkSync(diskPath);
-    }
-
-    const wasServerManaged = manifest.documents.some((documentItem) => documentItem.path === documentPath);
+    await destroyDocumentCloudinaryMedia(matchingDocument || payload);
+    deletionPaths.forEach((projectPath) => {
+      deleteLocalDocumentFile(projectPath);
+    });
 
     manifest.documents = manifest.documents.filter((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
       const sameDocument = documentItem.path === documentPath || documentIdentity(documentItem) === identity;
       return !(sameLibrary && sameDocument);
     });
-    manifest.deletedPaths = wasServerManaged
-      ? (manifest.deletedPaths || []).filter((deletedPath) => deletedPath !== documentPath)
-      : Array.from(new Set([...(manifest.deletedPaths || []), documentPath]));
+    manifest.deletedPaths = matchingDocument && !matchingDocument.sourcePaths
+      ? (manifest.deletedPaths || []).filter((deletedPath) => !deletionPaths.includes(deletedPath))
+      : Array.from(new Set([...(manifest.deletedPaths || []), ...deletionPaths.filter((itemPath) => !isRemoteUrl(itemPath))]));
     writeManifest(manifest);
 
     sendJson(response, 200, { ok: true, deletedPaths: manifest.deletedPaths });
   } catch (error) {
     sendJson(response, 400, { error: "Unable to delete document" });
+  }
+}
+
+async function migrateExistingDocumentsToCloudinary(request, response) {
+  try {
+    if (!requireAdmin(request, response)) {
+      return;
+    }
+
+    const result = await migrateLocalDocumentsToCloudinary();
+    sendJson(response, 200, {
+      ok: true,
+      migrated: result.migrated,
+      skipped: result.skipped,
+      documents: result.documents
+    });
+  } catch (error) {
+    sendJson(response, 500, { error: "Unable to migrate documents" });
+  }
+}
+
+async function migrateLocalDocumentsToCloudinary() {
+  const manifest = dedupeManifestDocuments(readManifest());
+  const migratedDocuments = [];
+  let skippedDocuments = 0;
+
+  for (const definition of getMigrationDocumentDefinitions()) {
+    const folder = `sc-training/documents/${definition.client}/${definition.section}`;
+    const sourcePaths = definition.gallery || [definition.path];
+    const uploadedItems = [];
+    const existingMigratedDocument = manifest.documents.find((documentItem) => {
+      const sameLibrary = documentItem.client === definition.client && documentItem.section === definition.section;
+      return sameLibrary && documentIdentity(documentItem) === documentIdentity(definition) && documentItem.migratedToCloudinary && isRemoteUrl(documentItem.path);
+    });
+
+    if (existingMigratedDocument) {
+      skippedDocuments += 1;
+      continue;
+    }
+
+    for (const sourcePath of sourcePaths) {
+      const diskPath = resolveProjectPath(sourcePath);
+      if (!fs.existsSync(diskPath) || !fs.statSync(diskPath).isFile()) {
+        continue;
+      }
+
+      const result = await uploadToCloudinary(diskPath, folder);
+      uploadedItems.push({
+        sourcePath,
+        url: result.secure_url,
+        publicId: result.public_id,
+        resourceType: result.resource_type || (definition.mediaType.startsWith("video/") ? "video" : "image")
+      });
+    }
+
+    if (!uploadedItems.length) {
+      continue;
+    }
+
+    const firstUpload = uploadedItems[0];
+    const migratedDocument = {
+      ...definition,
+      path: firstUpload.url,
+      sourcePaths,
+      isServerSaved: true,
+      migratedToCloudinary: true,
+      cloudinaryPublicId: firstUpload.publicId,
+      cloudinaryResourceType: firstUpload.resourceType
+    };
+
+    if (definition.gallery) {
+      migratedDocument.gallery = uploadedItems.map((item) => item.url);
+      migratedDocument.cloudinaryGallery = uploadedItems.map((item) => ({
+        publicId: item.publicId,
+        resourceType: item.resourceType,
+        url: item.url
+      }));
+    }
+
+    manifest.documents = manifest.documents.filter((documentItem) => {
+      const sameLibrary = documentItem.client === migratedDocument.client && documentItem.section === migratedDocument.section;
+      return !sameLibrary || documentIdentity(documentItem) !== documentIdentity(migratedDocument);
+    });
+    manifest.documents.push(migratedDocument);
+    manifest.deletedPaths = (manifest.deletedPaths || []).filter((deletedPath) => !sourcePaths.includes(deletedPath));
+    migratedDocuments.push(migratedDocument);
+  }
+
+  writeManifest(manifest);
+  return {
+    migrated: migratedDocuments.length,
+    skipped: skippedDocuments,
+    documents: migratedDocuments
+  };
+}
+
+async function autoMigrateLocalDocuments() {
+  if (!AUTO_MIGRATE_DOCUMENTS) {
+    return;
+  }
+
+  try {
+    const result = await migrateLocalDocumentsToCloudinary();
+    if (result.migrated || result.skipped) {
+      console.log(`Cloudinary document migration: ${result.migrated} migrated, ${result.skipped} already migrated`);
+    }
+  } catch (error) {
+    console.error(`Cloudinary document migration failed: ${error.message}`);
   }
 }
 
@@ -302,8 +647,41 @@ function handleAdminStatus(request, response) {
   sendJson(response, 200, { isAdmin: isAdminRequest(request) });
 }
 
+function isSensitiveStaticPath(requestedPath = "") {
+  const normalizedPath = requestedPath.replace(/\\/g, "/").toLowerCase();
+  const blockedPrefixes = [
+    "/api/",
+    "/config/",
+    "/models/",
+    "/services/",
+    "/node_modules/"
+  ];
+  const blockedFiles = new Set([
+    "/.env",
+    "/package.json",
+    "/package-lock.json",
+    "/server.js",
+    "/server-verify.log",
+    "/server-verify.err.log",
+    "/documents/document-manifest.json"
+  ]);
+
+  return (
+    normalizedPath.startsWith("/.") ||
+    blockedFiles.has(normalizedPath) ||
+    blockedPrefixes.some((prefix) => normalizedPath.startsWith(prefix))
+  );
+}
+
 function serveStatic(request, response, url) {
   const requestedPath = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+
+  if (isSensitiveStaticPath(requestedPath)) {
+    response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Not found");
+    return;
+  }
+
   const filePath = resolveProjectPath(`.${requestedPath}`);
 
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
@@ -326,6 +704,145 @@ function serveStatic(request, response, url) {
   fs.createReadStream(filePath).pipe(response);
 }
 
+async function uploadToCloudinary(filePath, folder = "sc-training/dashboard") {
+  assertCloudinaryConfigured();
+
+  return await cloudinary.uploader.upload(filePath, {
+    folder,
+    resource_type: "auto"
+  });
+}
+
+function runSingleFileUpload(request, response) {
+  return new Promise((resolve, reject) => {
+    upload.single("file")(request, response, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+function serializeDashboardMedia(media) {
+  return {
+    id: media._id.toString(),
+    url: media.url,
+    secure_url: media.url,
+    publicId: media.publicId,
+    resourceType: media.resourceType,
+    mimeType: media.mimeType,
+    originalName: media.originalName,
+    size: media.size,
+    createdAt: media.createdAt
+  };
+}
+
+async function handleUpload(request, response) {
+  let tempPath = "";
+  let uploadedResult = null;
+
+  try {
+    if (!requireAdmin(request, response)) {
+      return;
+    }
+
+    await runSingleFileUpload(request, response);
+
+    if (!request.file) {
+      sendJson(response, 400, { error: "File is required" });
+      return;
+    }
+
+    tempPath = request.file.path;
+    const mimeType = String(request.file.mimetype || "").toLowerCase();
+    const isImage = mimeType.startsWith("image/");
+    const isMp4Video = mimeType === "video/mp4";
+
+    if (!isImage && !isMp4Video) {
+      sendJson(response, 400, { error: "Only images and mp4 videos are allowed" });
+      return;
+    }
+
+    const maxBytes = isMp4Video ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES;
+    if (request.file.size > maxBytes) {
+      sendJson(response, 413, { error: "File too large" });
+      return;
+    }
+
+    const result = await uploadToCloudinary(tempPath);
+    uploadedResult = result;
+    await connectDatabase();
+
+    const media = await DashboardMedia.create({
+      url: result.secure_url,
+      publicId: result.public_id,
+      resourceType: result.resource_type === "video" ? "video" : "image",
+      mimeType,
+      originalName: request.file.originalname || "dashboard-media",
+      size: request.file.size
+    });
+
+    sendJson(response, 200, {
+      success: true,
+      url: result.secure_url,
+      secure_url: result.secure_url,
+      media: serializeDashboardMedia(media)
+    });
+  } catch (error) {
+    if (uploadedResult && uploadedResult.public_id) {
+      await Promise.allSettled([
+        destroyCloudinaryMedia(uploadedResult.public_id, uploadedResult.resource_type === "video" ? "video" : "image")
+      ]);
+    }
+
+    sendJson(response, error.code === "LIMIT_FILE_SIZE" ? 413 : 500, {
+      error: error.message || "Upload error"
+    });
+  } finally {
+    if (tempPath && fs.existsSync(tempPath)) {
+      fs.unlink(tempPath, () => {});
+    }
+  }
+}
+
+async function listDashboardMedia(request, response) {
+  try {
+    await connectDatabase();
+    const mediaItems = await DashboardMedia.find().sort({ createdAt: -1 }).lean();
+
+    sendJson(response, 200, {
+      media: mediaItems.map(serializeDashboardMedia)
+    });
+  } catch (error) {
+    sendJson(response, 500, { error: "Unable to load dashboard media" });
+  }
+}
+
+async function deleteDashboardMedia(request, response, mediaId) {
+  try {
+    if (!requireAdmin(request, response)) {
+      return;
+    }
+
+    await connectDatabase();
+    const media = await DashboardMedia.findById(mediaId).lean();
+
+    if (!media) {
+      sendJson(response, 404, { error: "Media not found" });
+      return;
+    }
+
+    await destroyCloudinaryMedia(media.publicId, media.resourceType === "video" ? "video" : "image");
+    await DashboardMedia.findByIdAndDelete(mediaId);
+
+    sendJson(response, 200, { ok: true });
+  } catch (error) {
+    sendJson(response, 500, { error: "Unable to delete dashboard media" });
+  }
+}
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   const handledComplaintRequest = await handleComplaintsApi(request, response, url, {
@@ -374,6 +891,27 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/api/documents/migrate-cloudinary" && request.method === "POST") {
+    await migrateExistingDocumentsToCloudinary(request, response);
+    return;
+  }
+
+  if (url.pathname === "/api/upload" && request.method === "POST") {
+    await handleUpload(request, response);
+    return;
+  }
+
+  if (url.pathname === "/api/dashboard-media" && request.method === "GET") {
+    await listDashboardMedia(request, response);
+    return;
+  }
+
+  const dashboardMediaDeleteMatch = url.pathname.match(/^\/api\/dashboard-media\/([a-f0-9]{24})$/i);
+  if (dashboardMediaDeleteMatch && request.method === "DELETE") {
+    await deleteDashboardMedia(request, response, dashboardMediaDeleteMatch[1]);
+    return;
+  }
+
   try {
     serveStatic(request, response, url);
   } catch {
@@ -384,4 +922,12 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(PORT, () => {
   console.log(`SC Training running on http://localhost:${PORT}`);
+  autoMigrateLocalDocuments();
+  connectDatabase()
+    .then(() => {
+      console.log("MongoDB connected");
+    })
+    .catch((error) => {
+      console.error(`MongoDB connection failed: ${error.message}`);
+    });
 });

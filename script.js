@@ -1,4 +1,4 @@
-const STORAGE_KEY = "sc-training-home-lang";
+﻿const STORAGE_KEY = "sc-training-home-lang";
 const LOCATION_ACCESS_KEY = "sc-training-location-access";
 const LOCATION_ACCESS_MODE_KEY = "sc-training-location-access-mode";
 const LOCATION_ACCESS_AT_KEY = "sc-training-location-access-at";
@@ -309,6 +309,10 @@ function normalizeDocumentIdentity(value = "") {
 }
 
 function getDocumentIdentityKey(documentItem) {
+  if (documentItem.id) {
+    return normalizeDocumentIdentity(documentItem.id);
+  }
+
   const rawTitle =
     documentItem.title ||
     decodeURIComponent((documentItem.path || "").split("/").pop() || "");
@@ -968,16 +972,12 @@ function getSupportTypeLabelKey(type = "message") {
   return "supportTypeMessage";
 }
 
-function getSupportPriorityLabelKey(priority = "normal") {
-  if (priority === "urgent") {
-    return "supportPriorityUrgent";
+function getSupportPriorityLabelKey(priority = "formal") {
+  if (priority === "informal") {
+    return "supportPriorityInformal";
   }
 
-  if (priority === "high") {
-    return "supportPriorityHigh";
-  }
-
-  return "supportPriorityNormal";
+  return "supportPriorityFormal";
 }
 
 function getSupportStatusLabelKey(status = "pending") {
@@ -1072,6 +1072,14 @@ function updateSupportTypeCards(type = "message") {
   });
 }
 
+function updateSupportPriorityStyle() {
+  if (!supportPriorityInputNode) {
+    return;
+  }
+
+  supportPriorityInputNode.dataset.priority = supportPriorityInputNode.value || "formal";
+}
+
 function updateSupportStatus(lang, key, state = "info") {
   if (!supportStatusNode) {
     return;
@@ -1107,7 +1115,7 @@ function buildSupportDraft(client) {
     line: lineLabel,
     lineValue: selectedSupportLine || (supportLineInputNode && supportLineInputNode.value) || "",
     type: (supportTypeInputNode && supportTypeInputNode.value) || "message",
-    priority: (supportPriorityInputNode && supportPriorityInputNode.value) || "normal",
+    priority: (supportPriorityInputNode && supportPriorityInputNode.value) || "formal",
     senderPhone: (supportPhoneInputNode && supportPhoneInputNode.value.trim()) || "",
     subject: (supportSubjectInputNode && supportSubjectInputNode.value.trim()) || "",
     details: (supportDetailsInputNode && supportDetailsInputNode.value.trim()) || "",
@@ -1127,7 +1135,7 @@ function buildSupportMessage(entry, lang) {
   const lines = [
     `${getText(lang, "supportLabelClient")}: ${getText(lang, getClientTranslationKey(entry.client || "stellantis"))}`,
     `${getText(lang, "supportLabelType")}: ${getText(lang, getSupportTypeLabelKey(entry.type || "message"))}`,
-    `${getText(lang, "supportFieldPriority")}: ${getText(lang, getSupportPriorityLabelKey(entry.priority || "normal"))}`
+    `${getText(lang, "supportFieldPriority")}: ${getText(lang, getSupportPriorityLabelKey(entry.priority || "formal"))}`
   ];
 
   if (translatedLine) {
@@ -1340,7 +1348,7 @@ function renderSupportPhotoPreview(lang) {
     removeNode.className = "support-photo-card__remove";
     removeNode.setAttribute("aria-label", getText(lang, "supportPhotoRemove"));
     removeNode.title = getText(lang, "supportPhotoRemove");
-    removeNode.textContent = "×";
+    removeNode.textContent = "Ã—";
     removeNode.addEventListener("click", () => {
       if (!confirmDeleteAction(document.documentElement.lang || "fr")) {
         return;
@@ -1516,7 +1524,7 @@ function renderSupportHistory(lang) {
     typeBadgeNode.textContent = getText(lang, getSupportTypeLabelKey(entry.type));
 
     const priorityBadgeNode = document.createElement("span");
-    priorityBadgeNode.className = "support-history-item__badge support-history-item__badge--priority";
+    priorityBadgeNode.className = `support-history-item__badge support-history-item__badge--priority support-history-item__badge--priority-${entry.priority || "formal"}`;
     priorityBadgeNode.textContent = getText(lang, getSupportPriorityLabelKey(entry.priority));
 
     const statusBadgeNode = document.createElement("span");
@@ -1690,6 +1698,7 @@ function updateSupportCenter(lang) {
   renderSupportPhotoPreview(lang);
   updateSupportLineGate(lang);
   updateSupportTypeCards(currentSupportType);
+  updateSupportPriorityStyle();
   updateSupportAccess(lang);
   renderSupportHistory(lang);
   if (isAdmin()) {
@@ -1724,6 +1733,11 @@ function setupSupportCenter() {
     supportWeekFilterNode.addEventListener("change", () => {
       renderSupportHistory(document.documentElement.lang || "fr");
     });
+  }
+
+  if (supportPriorityInputNode) {
+    supportPriorityInputNode.addEventListener("change", updateSupportPriorityStyle);
+    updateSupportPriorityStyle();
   }
 
   if (supportPhotoInputNode) {
@@ -1986,7 +2000,12 @@ async function deleteDocumentFile(documentItem, client, section, lang) {
         client,
         section,
         path: documentItem.path,
-        title: documentItem.title
+        title: documentItem.title,
+        mediaType: documentItem.mediaType,
+        gallery: documentItem.gallery || [],
+        cloudinaryPublicId: documentItem.cloudinaryPublicId || "",
+        cloudinaryResourceType: documentItem.cloudinaryResourceType || "",
+        cloudinaryGallery: documentItem.cloudinaryGallery || []
       })
     });
 
@@ -2818,3 +2837,4 @@ if (!localStorage.getItem(ADMIN_STORAGE_KEY)) {
 localStorage.removeItem("sc-training-location-access-persist");
 setLanguage(localStorage.getItem(STORAGE_KEY) || "fr");
 syncAdminSession();
+

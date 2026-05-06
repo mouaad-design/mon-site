@@ -1,0 +1,220 @@
+{
+  "documents": [
+    {
+      "id": "caracteres-speciaux-arabe",
+      "title": "CARACTÈRES SPÉCIAUX arabe",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778100394/sc-training/documents/stellantis/quality/obvvt2xvsc9xo6wvphop.png",
+      "mediaType": "image/png",
+      "client": "stellantis",
+      "section": "quality",
+      "sourcePaths": [
+        "./documents/stellantis/caracteres-speciaux-arabe.png"
+      ],
+      "isServerSaved": true,
+      "migratedToCloudinary": true,
+      "cloudinaryPublicId": "sc-training/documents/stellantis/quality/obvvt2xvsc9xo6wvphop",
+      "cloudinaryResourceType": "image"
+    },
+    {
+      "id": "cs-operateur",
+      "title": "Fichier CS operateur",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778100399/sc-training/documents/stellantis/quality/qs5zuf3mpgv0zsxmpjuw.png",
+      "mediaType": "image/png",
+      "client": "stellantis",
+      "section": "quality",
+      "sourcePaths": [
+        "./documents/stellantis/fichier-cs-operateur.png"
+      ],
+      "isServerSaved": true,
+      "migratedToCloudinary": true,
+      "cloudinaryPublicId": "sc-training/documents/stellantis/quality/qs5zuf3mpgv0zsxmpjuw",
+      "cloudinaryResourceType": "image"
+    },
+    {
+      "id": "mapping-charge-ar-v2",
+      "title": "Mapping charge AR version 2",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778100401/sc-training/documents/stellantis/quality/sn2gr3byxwrxsp67txfq.png",
+      "mediaType": "image/png",
+      "client": "stellantis",
+      "section": "quality",
+      "sourcePaths": [
+        "./documents/stellantis/mapping-charge-ar-version-2.PNG"
+      ],
+      "isServerSaved": true,
+      "migratedToCloudinary": true,
+      "cloudinaryPublicId": "sc-training/documents/stellantis/quality/sn2gr3byxwrxsp67txfq",
+      "cloudinaryResourceType": "image"
+    },
+    {
+      "id": "presentation-operateur",
+      "title": "Présentation opérateur",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778100403/sc-training/documents/stellantis/training/z38zbvfz0fb4eylpsmh9.png",
+      "mediaType": "image/gallery",
+      "gallery": [
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100403/sc-training/documents/stellantis/training/z38zbvfz0fb4eylpsmh9.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100408/sc-training/documents/stellantis/training/mrpjtj4qfkkwy2tbjq5y.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100411/sc-training/documents/stellantis/training/gh7g1iuyadant61hussm.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100412/sc-training/documents/stellantis/training/pisqxjnhtharifipawih.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100415/sc-training/documents/stellantis/training/ta6f4ea95amuowrcdwvu.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100416/sc-training/documents/stellantis/training/rivv7tu9vgt2k4wfd2rf.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100422/sc-training/documents/stellantis/training/qbmrkwhznhhogibmxai2.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100427/sc-training/documents/stellantis/training/bgvh1hxn399ci2rbilbq.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100434/sc-training/documents/stellantis/training/wpipu5bns9i5rwkmikun.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100442/sc-training/documents/stellantis/training/irahvgfyidy3ytjn4v6p.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100449/sc-training/documents/stellantis/training/ntqeh0vblca5hiuifn8v.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100452/sc-training/documents/stellantis/training/rqa7txacxzsiisnrigdx.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100457/sc-training/documents/stellantis/training/v8rrayqqh0mmgahicvvc.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100461/sc-training/documents/stellantis/training/yfmovv0e2zhwwfhfqfmz.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100465/sc-training/documents/stellantis/training/g0jojih6sy2rupubmm2r.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100469/sc-training/documents/stellantis/training/hhmrz8ki2tojt8f9np0a.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100474/sc-training/documents/stellantis/training/vh3f0i8hwuj76tfzjfv3.png",
+        "https://res.cloudinary.com/dystakpay/image/upload/v1778100476/sc-training/documents/stellantis/training/nfnudw1gxgbjzxfsalbx.png"
+      ],
+      "client": "stellantis",
+      "section": "training",
+      "sourcePaths": [
+        "./documents/stellantis/presentation-operateur/Diapositive1.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive2.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive3.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive4.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive5.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive6.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive7.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive8.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive9.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive10.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive11.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive12.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive13.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive14.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive15.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive16.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive17.PNG",
+        "./documents/stellantis/presentation-operateur/Diapositive18.PNG"
+      ],
+      "isServerSaved": true,
+      "migratedToCloudinary": true,
+      "cloudinaryPublicId": "sc-training/documents/stellantis/training/z38zbvfz0fb4eylpsmh9",
+      "cloudinaryResourceType": "image",
+      "cloudinaryGallery": [
+        {
+          "publicId": "sc-training/documents/stellantis/training/z38zbvfz0fb4eylpsmh9",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100403/sc-training/documents/stellantis/training/z38zbvfz0fb4eylpsmh9.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/mrpjtj4qfkkwy2tbjq5y",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100408/sc-training/documents/stellantis/training/mrpjtj4qfkkwy2tbjq5y.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/gh7g1iuyadant61hussm",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100411/sc-training/documents/stellantis/training/gh7g1iuyadant61hussm.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/pisqxjnhtharifipawih",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100412/sc-training/documents/stellantis/training/pisqxjnhtharifipawih.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/ta6f4ea95amuowrcdwvu",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100415/sc-training/documents/stellantis/training/ta6f4ea95amuowrcdwvu.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/rivv7tu9vgt2k4wfd2rf",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100416/sc-training/documents/stellantis/training/rivv7tu9vgt2k4wfd2rf.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/qbmrkwhznhhogibmxai2",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100422/sc-training/documents/stellantis/training/qbmrkwhznhhogibmxai2.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/bgvh1hxn399ci2rbilbq",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100427/sc-training/documents/stellantis/training/bgvh1hxn399ci2rbilbq.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/wpipu5bns9i5rwkmikun",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100434/sc-training/documents/stellantis/training/wpipu5bns9i5rwkmikun.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/irahvgfyidy3ytjn4v6p",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100442/sc-training/documents/stellantis/training/irahvgfyidy3ytjn4v6p.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/ntqeh0vblca5hiuifn8v",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100449/sc-training/documents/stellantis/training/ntqeh0vblca5hiuifn8v.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/rqa7txacxzsiisnrigdx",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100452/sc-training/documents/stellantis/training/rqa7txacxzsiisnrigdx.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/v8rrayqqh0mmgahicvvc",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100457/sc-training/documents/stellantis/training/v8rrayqqh0mmgahicvvc.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/yfmovv0e2zhwwfhfqfmz",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100461/sc-training/documents/stellantis/training/yfmovv0e2zhwwfhfqfmz.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/g0jojih6sy2rupubmm2r",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100465/sc-training/documents/stellantis/training/g0jojih6sy2rupubmm2r.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/hhmrz8ki2tojt8f9np0a",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100469/sc-training/documents/stellantis/training/hhmrz8ki2tojt8f9np0a.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/vh3f0i8hwuj76tfzjfv3",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100474/sc-training/documents/stellantis/training/vh3f0i8hwuj76tfzjfv3.png"
+        },
+        {
+          "publicId": "sc-training/documents/stellantis/training/nfnudw1gxgbjzxfsalbx",
+          "resourceType": "image",
+          "url": "https://res.cloudinary.com/dystakpay/image/upload/v1778100476/sc-training/documents/stellantis/training/nfnudw1gxgbjzxfsalbx.png"
+        }
+      ]
+    },
+    {
+      "id": "cdpo-training-module",
+      "title": "CDPO Training Module",
+      "path": "https://res.cloudinary.com/dystakpay/video/upload/v1778100760/sc-training/documents/stellantis/tutorials/ajyzulpcncsiuwbswnso.mp4",
+      "mediaType": "video/mp4",
+      "client": "stellantis",
+      "section": "tutorials",
+      "sourcePaths": [
+        "./video/stellantis/CDPO _ Training Module..mp4"
+      ],
+      "isServerSaved": true,
+      "migratedToCloudinary": true,
+      "cloudinaryPublicId": "sc-training/documents/stellantis/tutorials/ajyzulpcncsiuwbswnso",
+      "cloudinaryResourceType": "video"
+    },
+    {
+      "id": "capture-d-ecran-2026-04-09-143742",
+      "title": "Capture d'écran 2026-04-09 143742.png",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778101905/sc-training/documents/stellantis/training/b6vhekyu9gmdetxdoc5s.png",
+      "mediaType": "image/png",
+      "client": "stellantis",
+      "section": "training",
+      "isServerSaved": true,
+      "cloudinaryPublicId": "sc-training/documents/stellantis/training/b6vhekyu9gmdetxdoc5s",
+      "cloudinaryResourceType": "image"
+    }
+  ],
+  "deletedPaths": []
+}

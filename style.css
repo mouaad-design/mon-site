@@ -11,6 +11,15 @@
   box-sizing: border-box;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(255, 184, 120, 0.92);
+  outline-offset: 3px;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -970,13 +979,24 @@ body.rtl .login-card {
 }
 
 @media (max-width: 760px) {
-  .admin-login-trigger,
-  .admin-login-modal {
-    display: none !important;
-  }
-
   .document-viewer-doc-item {
     flex-direction: column;
+  }
+
+  .admin-login-modal__dialog {
+    width: min(100%, 520px);
+    max-height: calc(100vh - 28px);
+    padding: 28px 18px 20px;
+    overflow-y: auto;
+  }
+
+  .admin-login-modal__close {
+    top: 14px;
+    right: 14px;
+  }
+
+  .admin-login-password-wrap {
+    grid-template-columns: minmax(0, 1fr) 44px;
   }
 }
 
@@ -2247,6 +2267,16 @@ body.rtl .document-viewer-doc-link {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.support-history-item__badge--priority-formal {
+  background: rgba(210, 55, 55, 0.18);
+  color: #ffe6e4;
+}
+
+.support-history-item__badge--priority-informal {
+  background: rgba(235, 142, 42, 0.2);
+  color: #fff0de;
+}
+
 .support-history-item__badge--status {
   background: rgba(72, 117, 206, 0.18);
 }
@@ -2503,6 +2533,24 @@ body.rtl .document-viewer-doc-link {
   box-shadow: 0 0 0 4px rgba(74, 172, 159, 0.12);
 }
 
+.support-page [data-support-priority-input][data-priority="formal"] {
+  border-color: rgba(210, 55, 55, 0.42);
+  color: #a33232;
+}
+
+.support-page [data-support-priority-input][data-priority="informal"] {
+  border-color: rgba(235, 142, 42, 0.48);
+  color: #9a5a16;
+}
+
+.support-page [data-support-priority-input] option[value="formal"] {
+  color: #a33232;
+}
+
+.support-page [data-support-priority-input] option[value="informal"] {
+  color: #9a5a16;
+}
+
 .support-page .support-photo-trigger {
   border-color: rgba(155, 196, 206, 0.88);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(244, 249, 248, 0.78));
@@ -2591,6 +2639,16 @@ body.rtl .document-viewer-doc-link {
 .support-page .support-history-item__meta span {
   background: rgba(232, 242, 240, 0.76);
   color: #52706b;
+}
+
+.support-page .support-history-item__badge--priority-formal {
+  background: rgba(210, 55, 55, 0.14);
+  color: #a33232;
+}
+
+.support-page .support-history-item__badge--priority-informal {
+  background: rgba(235, 142, 42, 0.16);
+  color: #9a5a16;
 }
 
 .support-page .support-history-item__badge--status {
@@ -3393,6 +3451,10 @@ body.rtl .dashboard-card--docs .dashboard-card-icon {
   margin-left: 0;
 }
 
+body.rtl .client-card {
+  text-align: right;
+}
+
 body.rtl .summary-card::before {
   left: auto;
   right: 16px;
@@ -3437,6 +3499,10 @@ body.rtl .summary-card::before {
   }
 
   .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .client-grid {
     grid-template-columns: 1fr;
   }
 
@@ -3863,21 +3929,32 @@ body.rtl .summary-card::before {
   }
 
   .client-card {
-    min-height: 216px;
+    min-height: 0;
     gap: 14px;
     padding: 16px 14px;
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    text-align: left;
   }
 
   .client-card__logo {
+    grid-row: 1 / span 2;
     min-height: 88px;
     border-radius: 18px;
   }
 
   .client-card__logo img {
     height: 88px;
-    object-fit: cover;
+    object-fit: contain;
     padding: 0;
-    background: transparent;
+    background: #ffffff;
+  }
+
+  .client-card__title,
+  .client-card__text {
+    min-width: 0;
   }
 
   .dashboard-dual-logos {
