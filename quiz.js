@@ -1232,6 +1232,7 @@ function isAdmin() {
 
 function setAdminState(nextValue) {
   adminSessionActive = nextValue === true;
+  document.body.dataset.role = adminSessionActive ? "admin" : "viewer";
 }
 
 function canUseServerApi() {
@@ -1747,18 +1748,21 @@ function renderAdminPanel() {
     return;
   }
 
-  elements.adminPanel.classList.toggle("hidden", !isAdmin());
+  const adminActive = isAdmin();
+  elements.adminPanel.hidden = !adminActive;
+  elements.adminPanel.classList.toggle("hidden", !adminActive);
 
   if (elements.excelResultsPanel) {
-    elements.excelResultsPanel.hidden = !isAdmin();
-    elements.excelResultsPanel.classList.toggle("hidden", !isAdmin());
+    elements.excelResultsPanel.hidden = !adminActive;
+    elements.excelResultsPanel.classList.toggle("hidden", !adminActive);
 
-    if (isAdmin() && !excelQuizResultsLoaded && !excelQuizResultsLoading) {
+    if (adminActive && !excelQuizResultsLoaded && !excelQuizResultsLoading) {
       loadExcelQuizResults();
     }
   }
 
-  if (!isAdmin()) {
+  if (!adminActive) {
+    resetAdminForm();
     return;
   }
 
@@ -1767,6 +1771,11 @@ function renderAdminPanel() {
 }
 
 function saveAdminQuestion() {
+  if (!isAdmin()) {
+    renderAdminPanel();
+    return;
+  }
+
   const nextQuestion = buildQuestionFromForm();
   if (!nextQuestion) {
     setAdminStatus("adminStatusMissing");
@@ -1788,6 +1797,11 @@ function saveAdminQuestion() {
 }
 
 function deleteAdminQuestion() {
+  if (!isAdmin()) {
+    renderAdminPanel();
+    return;
+  }
+
   if (!selectedAdminQuestionId) {
     resetAdminForm();
     return;
@@ -2053,6 +2067,11 @@ elements.submitButton.addEventListener("click", async () => {
 
 if (elements.adminQuestionSelect) {
   elements.adminQuestionSelect.addEventListener("change", () => {
+    if (!isAdmin()) {
+      renderAdminPanel();
+      return;
+    }
+
     selectedAdminQuestionId = elements.adminQuestionSelect.value || "";
     fillAdminForm(getQuestionById(selectedAdminQuestionId));
     setAdminStatus("");
@@ -2068,7 +2087,14 @@ if (elements.adminDeleteButton) {
 }
 
 if (elements.excelResultsRefreshButton) {
-  elements.excelResultsRefreshButton.addEventListener("click", loadExcelQuizResults);
+  elements.excelResultsRefreshButton.addEventListener("click", () => {
+    if (!isAdmin()) {
+      renderAdminPanel();
+      return;
+    }
+
+    loadExcelQuizResults();
+  });
 }
 
 if (elements.excelResultsSearch) {

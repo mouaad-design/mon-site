@@ -846,6 +846,10 @@ body.rtl .login-card {
   display: none !important;
 }
 
+[data-admin-only][hidden] {
+  display: none !important;
+}
+
 .admin-login-modal__kicker {
   margin: 28px 0 8px;
   color: #ffbf9f;
