@@ -1460,6 +1460,10 @@ body.motion-ready .reveal-section.is-visible {
   min-width: 68px;
 }
 
+.document-viewer-pager__btn--fullscreen {
+  min-width: 104px;
+}
+
 .document-viewer-pager__btn:disabled {
   opacity: 0.42;
   cursor: default;
@@ -1552,8 +1556,13 @@ body.motion-ready .reveal-section.is-visible {
 }
 
 .document-viewer-pdf.is-mobile-preview .document-viewer-image {
+  width: 100%;
+  height: auto;
   max-width: 100%;
+  max-height: none;
   margin: 0 auto;
+  object-fit: contain;
+  object-position: center top;
 }
 
 .document-viewer-pdf__status {
@@ -1806,18 +1815,12 @@ body.rtl .document-viewer-doc-link {
 }
 
 .support-week-filter__control svg {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  width: 20px;
-  height: 20px;
-  transform: translateY(-50%);
-  color: rgba(255, 236, 225, 0.72);
-  pointer-events: none;
+  display: none;
 }
 
 .support-week-filter__control input {
-  padding-left: 44px;
+  padding-left: 16px;
+  padding-right: 44px;
 }
 
 .support-content {
@@ -2524,13 +2527,12 @@ body.rtl .document-viewer-doc-link {
 }
 
 .support-page.rtl .support-week-filter__control svg {
-  right: 14px;
-  left: auto;
+  display: none;
 }
 
 .support-page.rtl .support-week-filter__control input {
-  padding-right: 44px;
-  padding-left: 14px;
+  padding-right: 16px;
+  padding-left: 44px;
 }
 
 .support-page .support-field input:focus,
@@ -4040,7 +4042,24 @@ body.rtl .summary-card::before {
   }
 
   .document-viewer-image {
+    width: 100%;
+    height: auto;
     max-height: min(76vh, calc(100vh - 190px));
+    object-fit: contain;
+    object-position: center top;
+  }
+
+  .document-viewer-pdf.is-mobile-preview .document-viewer-image {
+    max-height: none;
+  }
+
+  .support-photo-card img,
+  .support-history-item__gallery img {
+    height: auto;
+    aspect-ratio: auto;
+    object-fit: contain;
+    object-position: center center;
+    background: rgba(255, 255, 255, 0.92);
   }
 
   .document-viewer-pager {
@@ -4058,10 +4077,16 @@ body.rtl .summary-card::before {
   }
 
   .document-viewer-pager__btn--icon {
-    min-width: 38px;
-    width: 38px;
-    padding: 0;
-    font-size: 1rem;
+    display: none;
+  }
+
+  .document-viewer-pager__btn--label {
+    min-width: 64px;
+    pointer-events: none;
+  }
+
+  .document-viewer-pager__btn--fullscreen {
+    min-width: 104px;
   }
 
   .document-viewer-pager__label {

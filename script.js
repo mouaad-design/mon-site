@@ -203,6 +203,29 @@ function setAdminState(nextValue) {
   document.body.dataset.role = adminSessionActive ? "admin" : "viewer";
 }
 
+function getAccessMode() {
+  return sessionStorage.getItem(LOCATION_ACCESS_MODE_KEY) || "visitor";
+}
+
+function isVisitorAccessMode() {
+  return getAccessMode() === "visitor";
+}
+
+async function clearAdminSessionOnServer() {
+  if (!canUseServerApi()) {
+    return;
+  }
+
+  try {
+    await fetch("./api/admin/logout", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+  } catch {
+    // Visitor mode must stay local even if the network request fails.
+  }
+}
+
 function applyRoleUi(lang = document.documentElement.lang || "fr") {
   const adminActive = isAdmin();
   document.body.dataset.role = adminActive ? "admin" : "viewer";
@@ -426,6 +449,7 @@ function updatePdfPager() {
   const totalItems = activeGalleryItems.length;
   const currentItem = activeGalleryIndex + 1;
   const hasImageGallery = activeGalleryItems.length > 0;
+  const zoomLocked = isMobileDocumentViewport();
 
   if (!documentPagerNode || !totalItems) {
     if (documentPagerNode) {
@@ -450,16 +474,16 @@ function updatePdfPager() {
   }
 
   if (documentZoomOutNode) {
-    documentZoomOutNode.disabled = !hasImageGallery || activeDocumentZoom <= 1;
+    documentZoomOutNode.disabled = zoomLocked || !hasImageGallery || activeDocumentZoom <= 1;
   }
 
   if (documentZoomInNode) {
-    documentZoomInNode.disabled = !hasImageGallery || activeDocumentZoom >= 3;
+    documentZoomInNode.disabled = zoomLocked || !hasImageGallery || activeDocumentZoom >= 3;
   }
 
   if (documentZoomResetNode) {
-    documentZoomResetNode.disabled = !hasImageGallery || activeDocumentZoom === 1;
-    documentZoomResetNode.textContent = `${Math.round(activeDocumentZoom * 100)}%`;
+    documentZoomResetNode.disabled = zoomLocked || !hasImageGallery || activeDocumentZoom === 1;
+    documentZoomResetNode.textContent = zoomLocked ? "100%" : `${Math.round(activeDocumentZoom * 100)}%`;
   }
 }
 
@@ -486,6 +510,13 @@ function updateDocumentImageZoom() {
 }
 
 function setDocumentZoom(nextZoom) {
+  if (isMobileDocumentViewport()) {
+    activeDocumentZoom = 1;
+    updateDocumentImageZoom();
+    updatePdfPager();
+    return;
+  }
+
   const normalizedZoom = Math.max(1, Math.min(3, Number(nextZoom) || 1));
   activeDocumentZoom = Math.round(normalizedZoom * 100) / 100;
   updateDocumentImageZoom();
@@ -513,7 +544,7 @@ function resetDocumentPreview() {
   setMobileDocumentPreviewState(false);
   activeGalleryItems = [];
   activeGalleryIndex = 0;
-  activeDocumentZoom = isMobileDocumentViewport() ? 1.35 : 1;
+  activeDocumentZoom = 1;
   updatePdfPager();
 
   if (documentFrameNode) {
@@ -633,6 +664,13 @@ async function syncAdminSession() {
   if (!canUseServerApi()) {
     setAdminState(false);
     applyRoleUi(document.documentElement.lang || "fr");
+    return;
+  }
+
+  if (isVisitorAccessMode()) {
+    setAdminState(false);
+    applyRoleUi(document.documentElement.lang || "fr");
+    await clearAdminSessionOnServer();
     return;
   }
 
@@ -2333,7 +2371,7 @@ function updateDocumentViewer(lang) {
         documentFrameNode.hidden = false;
       }
     } else if (activeDocument && Array.isArray(activeDocument.gallery) && activeDocument.gallery.length) {
-      activeDocumentZoom = isMobileDocumentViewport() ? 1.35 : 1;
+      activeDocumentZoom = 1;
       activeGalleryItems = activeDocument.gallery.slice();
       activeGalleryIndex = 0;
       updatePdfPager();
@@ -2343,7 +2381,7 @@ function updateDocumentViewer(lang) {
         renderImageGallerySlide(activeGalleryItems[activeGalleryIndex]);
       }
     } else if (isImageDocument(activeDocument, documentPath)) {
-      activeDocumentZoom = isMobileDocumentViewport() ? 1.35 : 1;
+      activeDocumentZoom = 1;
       activeGalleryItems = [documentPath];
       activeGalleryIndex = 0;
       updatePdfPager();
@@ -2718,8 +2756,7 @@ function hasLocationAccess() {
     return false;
   }
 
-  const mode = sessionStorage.getItem(LOCATION_ACCESS_MODE_KEY) || "visitor";
-  if (mode !== "visitor") {
+  if (!isVisitorAccessMode()) {
     return true;
   }
 
@@ -2766,6 +2803,7 @@ function handleLocationSuccess(position) {
   if (distance <= effectiveRadius) {
     setAdminState(false);
     unlockLocationGate("visitor");
+    void clearAdminSessionOnServer();
     locationRequestInProgress = false;
     setLocationStatusByKey(lang, "locationGranted", "success");
     setLocationDetail(detailMessage);

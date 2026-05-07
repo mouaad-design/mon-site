@@ -7,8 +7,15 @@ const multer = require("multer");
 const { cloudinary, assertCloudinaryConfigured } = require("./config/cloudinary");
 const { handleComplaintsApi } = require("./api/complaints");
 const { handleQuizResultsApi } = require("./api/quizResults");
-const { readJsonFile, writeJsonFile } = require("./services/fileStore");
 const { ensureQuizResultsFile } = require("./services/quizExcelStore");
+const {
+  initMediaStore,
+  normalizeMedia,
+  readMedia,
+  removeDocumentMedia,
+  removeMediaById,
+  upsertMedia
+} = require("./services/mediaStore");
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
@@ -24,7 +31,6 @@ const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const AUTO_MIGRATE_DOCUMENTS = process.env.AUTO_MIGRATE_DOCUMENTS !== "false";
 const TEMP_UPLOAD_DIR = path.join(ROOT_DIR, "temp");
-const DASHBOARD_MEDIA_FILE = "dashboard-media.json";
 
 fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
 
@@ -165,6 +171,10 @@ function requireAdmin(request, response) {
 
 function setAdminCookie(response) {
   response.setHeader("Set-Cookie", `${ADMIN_COOKIE_NAME}=${encodeURIComponent(createAdminCookieValue())}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${ADMIN_SESSION_SECONDS}`);
+}
+
+function clearAdminCookie(response) {
+  response.setHeader("Set-Cookie", `${ADMIN_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
 
 function readRequestBody(request) {
@@ -413,16 +423,24 @@ function getMigrationDocumentDefinitions() {
   ];
 }
 
-function getClientDocuments(url) {
+async function getClientDocuments(url) {
   const client = safeSegment(url.searchParams.get("client"), "stellantis");
   const section = safeSegment(url.searchParams.get("section"), "quality");
   const manifest = dedupeManifestDocuments(readManifest());
-  const documents = manifest.documents.filter(
+  const manifestDocuments = manifest.documents.filter(
     (documentItem) => documentItem.client === client && documentItem.section === section
   );
+  const persistedDocuments = (await readMedia())
+    .filter((mediaItem) => mediaItem.kind === "document" && mediaItem.client === client && mediaItem.section === section)
+    .map((mediaItem) => mediaToDocument(mediaItem));
+  const documentsByIdentity = new Map();
+
+  [...manifestDocuments, ...persistedDocuments].forEach((documentItem) => {
+    documentsByIdentity.set(documentIdentity(documentItem) || documentItem.id, documentItem);
+  });
 
   sendJsonResponse(url.response, 200, {
-    documents,
+    documents: Array.from(documentsByIdentity.values()),
     deletedPaths: manifest.deletedPaths || []
   });
 }
@@ -472,6 +490,20 @@ async function saveDocument(request, response) {
       cloudinaryPublicId: result.public_id,
       cloudinaryResourceType: result.resource_type || (isVideoUpload(mediaType, title) ? "video" : "image")
     };
+    const persistedMedia = await upsertMedia({
+      kind: "document",
+      id: newDocument.id,
+      title,
+      client,
+      section,
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+      file_type: mediaType,
+      resource_type: newDocument.cloudinaryResourceType,
+      original_name: title,
+      size: buffer.length,
+      uploaded_at: new Date().toISOString()
+    });
     const identity = documentIdentity(newDocument);
     const manifest = dedupeManifestDocuments(readManifest());
     const replacedDocuments = manifest.documents.filter((documentItem) => {
@@ -486,7 +518,12 @@ async function saveDocument(request, response) {
     manifest.documents.push(newDocument);
     manifest.deletedPaths = (manifest.deletedPaths || []).filter((deletedPath) => deletedPath !== projectPath);
     writeManifest(manifest);
-    await Promise.allSettled(replacedDocuments.map((documentItem) => destroyDocumentCloudinaryMedia(documentItem)));
+    await Promise.allSettled([
+      ...replacedDocuments.map((documentItem) => destroyDocumentCloudinaryMedia(documentItem)),
+      ...persistedMedia.replaced
+        .filter((mediaItem) => mediaItem.public_id !== result.public_id)
+        .map((mediaItem) => destroyCloudinaryMedia(mediaItem.public_id, mediaItem.resource_type || "image"))
+    ]);
 
     sendJson(response, 200, { document: newDocument });
   } catch (error) {
@@ -527,7 +564,20 @@ async function deleteDocument(request, response) {
       ].filter(Boolean))
     );
 
-    await destroyDocumentCloudinaryMedia(matchingDocument || payload);
+    const removedMedia = await removeDocumentMedia({
+      ...payload,
+      client,
+      section,
+      path: documentPath,
+      title,
+      cloudinaryPublicId: payload.cloudinaryPublicId || matchingDocument?.cloudinaryPublicId || "",
+      cloudinaryResourceType: payload.cloudinaryResourceType || matchingDocument?.cloudinaryResourceType || ""
+    });
+
+    await Promise.allSettled([
+      destroyDocumentCloudinaryMedia(matchingDocument || payload),
+      ...removedMedia.map((mediaItem) => destroyCloudinaryMedia(mediaItem.public_id, mediaItem.resource_type || "image"))
+    ]);
     deletionPaths.forEach((projectPath) => {
       deleteLocalDocumentFile(projectPath);
     });
@@ -656,6 +706,31 @@ async function autoMigrateLocalDocuments() {
   }
 }
 
+async function syncManifestDocumentsToMediaStore() {
+  const manifest = dedupeManifestDocuments(readManifest());
+  const cloudinaryDocuments = (manifest.documents || []).filter((documentItem) => {
+    return documentItem.cloudinaryPublicId && isRemoteUrl(documentItem.path);
+  });
+
+  for (const documentItem of cloudinaryDocuments) {
+    await upsertMedia({
+      kind: "document",
+      id: documentItem.id,
+      title: documentItem.title,
+      client: documentItem.client || "stellantis",
+      section: documentItem.section || "quality",
+      secure_url: documentItem.path,
+      public_id: documentItem.cloudinaryPublicId,
+      file_type: documentItem.mediaType || "",
+      resource_type: documentItem.cloudinaryResourceType || getResourceTypeFromDocument(documentItem),
+      original_name: documentItem.title,
+      uploaded_at: documentItem.createdAt || new Date().toISOString(),
+      gallery: documentItem.gallery || [],
+      cloudinaryGallery: documentItem.cloudinaryGallery || []
+    });
+  }
+}
+
 async function handleAdminLogin(request, response) {
   try {
     const payload = JSON.parse(await readRequestBody(request));
@@ -675,6 +750,11 @@ async function handleAdminLogin(request, response) {
 
 function handleAdminStatus(request, response) {
   sendJson(response, 200, { isAdmin: isAdminRequest(request) });
+}
+
+function handleAdminLogout(request, response) {
+  clearAdminCookie(response);
+  sendJson(response, 200, { ok: true, isAdmin: false });
 }
 
 function isSensitiveStaticPath(requestedPath = "") {
@@ -756,17 +836,44 @@ function runSingleFileUpload(request, response) {
   });
 }
 
-function serializeDashboardMedia(media) {
+function mediaToDocument(media) {
+  const normalizedMedia = normalizeMedia(media, "document");
+
   return {
-    id: media.id,
-    url: media.url,
-    secure_url: media.url,
-    publicId: media.publicId,
-    resourceType: media.resourceType,
-    mimeType: media.mimeType,
-    originalName: media.originalName,
-    size: media.size,
-    createdAt: media.createdAt
+    id: safeSegment(path.parse(normalizedMedia.originalName || normalizedMedia.title || "document").name, "document"),
+    title: normalizedMedia.title || normalizedMedia.originalName || "Document",
+    path: normalizedMedia.secure_url,
+    mediaType: normalizedMedia.file_type || normalizedMedia.mimeType || "",
+    client: normalizedMedia.client || "stellantis",
+    section: normalizedMedia.section || "quality",
+    isServerSaved: true,
+    cloudinaryPublicId: normalizedMedia.public_id,
+    cloudinaryResourceType: normalizedMedia.resource_type,
+    gallery: normalizedMedia.gallery || [],
+    cloudinaryGallery: normalizedMedia.cloudinaryGallery || []
+  };
+}
+
+function serializeDashboardMedia(media) {
+  const normalizedMedia = normalizeMedia(media, "dashboard");
+
+  return {
+    id: normalizedMedia.id,
+    title: normalizedMedia.title,
+    client: normalizedMedia.client,
+    section: normalizedMedia.section,
+    url: normalizedMedia.secure_url,
+    secure_url: normalizedMedia.secure_url,
+    public_id: normalizedMedia.public_id,
+    publicId: normalizedMedia.public_id,
+    resource_type: normalizedMedia.resource_type,
+    resourceType: normalizedMedia.resource_type,
+    file_type: normalizedMedia.file_type,
+    mimeType: normalizedMedia.mimeType,
+    originalName: normalizedMedia.originalName,
+    size: normalizedMedia.size,
+    uploaded_at: normalizedMedia.uploaded_at,
+    createdAt: normalizedMedia.createdAt
   };
 }
 
@@ -804,27 +911,31 @@ async function handleUpload(request, response) {
 
     const result = await uploadToCloudinary(tempPath);
     uploadedResult = result;
-    const mediaItems = await readJsonFile(DASHBOARD_MEDIA_FILE, []);
+    const uploadedAt = new Date().toISOString();
+    const title = String(request.body?.title || request.file.originalname || "dashboard-media");
+    const client = safeSegment(request.body?.client, "stellantis");
+    const section = safeSegment(request.body?.section, "dashboard");
     const media = {
       id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      url: result.secure_url,
-      publicId: result.public_id,
-      resourceType: result.resource_type === "video" ? "video" : "image",
-      mimeType,
-      originalName: request.file.originalname || "dashboard-media",
+      kind: "dashboard",
+      title,
+      client,
+      section,
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+      resource_type: result.resource_type === "video" ? "video" : "image",
+      file_type: mimeType,
+      original_name: request.file.originalname || title,
       size: request.file.size,
-      createdAt: new Date().toISOString()
+      uploaded_at: uploadedAt
     };
-
-    const nextMediaItems = Array.isArray(mediaItems) ? mediaItems : [];
-    nextMediaItems.push(media);
-    await writeJsonFile(DASHBOARD_MEDIA_FILE, nextMediaItems);
+    const persistedMedia = await upsertMedia(media);
 
     sendJson(response, 200, {
       success: true,
       url: result.secure_url,
       secure_url: result.secure_url,
-      media: serializeDashboardMedia(media)
+      media: serializeDashboardMedia(persistedMedia.media)
     });
   } catch (error) {
     if (uploadedResult && uploadedResult.public_id) {
@@ -845,8 +956,8 @@ async function handleUpload(request, response) {
 
 async function listDashboardMedia(request, response) {
   try {
-    const mediaItems = await readJsonFile(DASHBOARD_MEDIA_FILE, []);
-    const sortedMediaItems = (Array.isArray(mediaItems) ? mediaItems : []).sort((first, second) => {
+    const mediaItems = (await readMedia()).filter((mediaItem) => mediaItem.kind === "dashboard");
+    const sortedMediaItems = mediaItems.sort((first, second) => {
       return new Date(second.createdAt || 0) - new Date(first.createdAt || 0);
     });
 
@@ -864,17 +975,14 @@ async function deleteDashboardMedia(request, response, mediaId) {
       return;
     }
 
-    const mediaItems = await readJsonFile(DASHBOARD_MEDIA_FILE, []);
-    const safeMediaItems = Array.isArray(mediaItems) ? mediaItems : [];
-    const media = safeMediaItems.find((item) => item.id === mediaId);
+    const media = await removeMediaById(mediaId);
 
     if (!media) {
       sendJson(response, 404, { error: "Media not found" });
       return;
     }
 
-    await destroyCloudinaryMedia(media.publicId, media.resourceType === "video" ? "video" : "image");
-    await writeJsonFile(DASHBOARD_MEDIA_FILE, safeMediaItems.filter((item) => item.id !== mediaId));
+    await destroyCloudinaryMedia(media.public_id, media.resource_type === "video" ? "video" : "image");
 
     sendJson(response, 200, { ok: true });
   } catch (error) {
@@ -905,7 +1013,7 @@ const server = http.createServer(async (request, response) => {
 
   if (url.pathname === "/api/documents" && request.method === "GET") {
     url.response = response;
-    getClientDocuments(url);
+    await getClientDocuments(url);
     return;
   }
 
@@ -916,6 +1024,11 @@ const server = http.createServer(async (request, response) => {
 
   if (url.pathname === "/api/admin/status" && request.method === "GET") {
     handleAdminStatus(request, response);
+    return;
+  }
+
+  if (url.pathname === "/api/admin/logout" && request.method === "POST") {
+    handleAdminLogout(request, response);
     return;
   }
 
@@ -958,9 +1071,18 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`SC Training running on http://localhost:${PORT}`);
-  autoMigrateLocalDocuments();
+  await autoMigrateLocalDocuments();
+
+  try {
+    const mediaFilePath = await initMediaStore();
+    await syncManifestDocumentsToMediaStore();
+    console.log(`Media metadata ready: ${path.relative(ROOT_DIR, mediaFilePath)}`);
+  } catch (error) {
+    console.error(`Media metadata unavailable: ${error.message}`);
+  }
+
   ensureQuizResultsFile()
     .then((filePath) => {
       console.log(`Quiz results Excel ready: ${path.relative(ROOT_DIR, filePath)}`);

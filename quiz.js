@@ -1235,14 +1235,45 @@ function setAdminState(nextValue) {
   document.body.dataset.role = adminSessionActive ? "admin" : "viewer";
 }
 
+function getQuizAccessMode() {
+  return sessionStorage.getItem(QUIZ_LOCATION_ACCESS_MODE_KEY) || "visitor";
+}
+
+function isQuizVisitorAccessMode() {
+  return getQuizAccessMode() === "visitor";
+}
+
 function canUseServerApi() {
   return window.location.protocol !== "file:";
+}
+
+async function clearQuizAdminSessionOnServer() {
+  if (!canUseServerApi()) {
+    return;
+  }
+
+  try {
+    await fetch("./api/admin/logout", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+  } catch {
+    // Visitor mode remains enforced locally if the request cannot complete.
+  }
 }
 
 async function syncQuizAdminSession() {
   if (!canUseServerApi()) {
     setAdminState(false);
     renderAdminPanel();
+    return;
+  }
+
+  if (isQuizVisitorAccessMode()) {
+    setAdminState(false);
+    setLanguage(currentLang);
+    renderAdminPanel();
+    await clearQuizAdminSessionOnServer();
     return;
   }
 
@@ -1277,8 +1308,7 @@ function requireQuizAccess() {
     return false;
   }
 
-  const mode = sessionStorage.getItem(QUIZ_LOCATION_ACCESS_MODE_KEY) || "visitor";
-  if (mode !== "visitor") {
+  if (!isQuizVisitorAccessMode()) {
     return true;
   }
 

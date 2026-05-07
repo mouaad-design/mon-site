@@ -43,7 +43,6 @@
           <div class="document-viewer-upload">
             <input type="file" class="document-viewer-upload__input" data-doc-upload-input accept=".pdf,image/*,video/*" hidden>
             <button type="button" class="document-viewer-upload__action" data-doc-upload-button data-admin-only data-i18n="documentPageAdd" hidden>Ajouter un document</button>
-            <button type="button" class="document-viewer-upload__action document-viewer-upload__action--secondary" data-doc-fullscreen-button data-i18n="documentPageFullscreen" disabled>Plein ecran</button>
           </div>
         </div>
 
@@ -62,6 +61,7 @@
           <button type="button" class="document-viewer-pager__btn document-viewer-pager__btn--icon" data-doc-zoom-in aria-label="Zoom in">+</button>
           <span class="document-viewer-pager__label" data-doc-page-label>1 / 1</span>
           <button type="button" class="document-viewer-pager__btn" data-doc-page-next data-i18n="documentPageNext">Suivant</button>
+          <button type="button" class="document-viewer-pager__btn document-viewer-pager__btn--fullscreen" data-doc-fullscreen-button data-i18n="documentPageFullscreen" disabled>Plein ecran</button>
         </div>
         <iframe
           class="document-viewer-frame"

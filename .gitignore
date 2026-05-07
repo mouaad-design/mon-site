@@ -1,5 +1,7 @@
 .env
 node_modules/
 temp/
-data/
+data/*
+!data/
+!data/media.json
 *.log
