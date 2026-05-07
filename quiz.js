@@ -6,7 +6,7 @@ const QUIZ_LOCATION_ACCESS_AT_KEY = "sc-training-location-access-at";
 const QUIZ_BANK_STORAGE_KEY = "sc-training-quiz-bank";
 const QUIZ_VISITOR_MATRICULE_KEY = "sc-training-quiz-visitor-matricule";
 const QUIZ_CLIENT = "stellantis";
-const SESSION_SIZE = 10;
+const SESSION_SIZE = 20;
 const VISITOR_ACCESS_DURATION_MS = 30 * 60 * 1000;
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 
@@ -17,10 +17,10 @@ const quizUi = {
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",
     title: "Quiz Special Characteristics",
-    subtitle: "Chaque session propose 10 questions aleatoires a partir d'une banque de 50 questions.",
+    subtitle: "Chaque session propose 20 questions aleatoires a partir d'une banque de 50 questions.",
     modeLabel: "Mode d'evaluation",
     startTitle: "Commencer une nouvelle session",
-    startText: "Le systeme choisit automatiquement 10 questions differentes a chaque lancement pour renforcer la memorisation et la rigueur qualite.",
+    startText: "Le systeme choisit automatiquement 20 questions differentes a chaque lancement pour renforcer la memorisation et la rigueur qualite.",
     readyState: "Banque de questions prete.",
     matriculeLabel: "Matricule",
     matriculePlaceholder: "Entrez votre matricule",
@@ -103,10 +103,10 @@ const quizUi = {
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",
     title: "Special Characteristics Quiz",
-    subtitle: "Each session presents 10 random questions selected from a 50-question bank.",
+    subtitle: "Each session presents 20 random questions selected from a 50-question bank.",
     modeLabel: "Assessment mode",
     startTitle: "Start a new session",
-    startText: "The system automatically selects 10 different questions each time to strengthen retention and quality discipline.",
+    startText: "The system automatically selects 20 different questions each time to strengthen retention and quality discipline.",
     readyState: "Question bank ready.",
     matriculeLabel: "Employee ID",
     matriculePlaceholder: "Enter your employee ID",
@@ -189,10 +189,10 @@ const quizUi = {
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",
     title: "اختبار الميزات الخاصة",
-    subtitle: "كل جلسة تعرض 10 أسئلة عشوائية من بنك مكون من 50 سؤالاً حول الميزات الخاصة.",
+    subtitle: "كل جلسة تعرض 20 سؤالاً عشوائياً من بنك مكون من 50 سؤالاً حول الميزات الخاصة.",
     modeLabel: "وضع التقييم",
     startTitle: "ابدأ جلسة جديدة",
-    startText: "يقوم النظام باختيار 10 أسئلة مختلفة تلقائياً في كل مرة لتعزيز الاستيعاب والانضباط في الجودة.",
+    startText: "يقوم النظام باختيار 20 سؤالاً مختلفاً تلقائياً في كل مرة لتعزيز الاستيعاب والانضباط في الجودة.",
     readyState: "بنك الأسئلة جاهز.",
     matriculeLabel: "رقم التأجير",
     matriculePlaceholder: "أدخل رقم التأجير",
@@ -1352,7 +1352,7 @@ function canStartQuiz() {
     return false;
   }
 
-  localStorage.setItem(QUIZ_VISITOR_MATRICULE_KEY, matricule);
+  activeVisitorMatricule = matricule;
   setMatriculeStatus("");
   return true;
 }
@@ -1362,7 +1362,7 @@ async function saveVisitorResult(score, totalQuestions, rate, passed) {
     return true;
   }
 
-  const matricule = localStorage.getItem(QUIZ_VISITOR_MATRICULE_KEY) || getVisitorMatricule();
+  const matricule = activeVisitorMatricule || getVisitorMatricule();
   if (!matricule) {
     return false;
   }
@@ -1474,6 +1474,7 @@ let revealedAnswers = [];
 let currentQuestionIndex = 0;
 let selectedAdminQuestionId = "";
 let adminSessionActive = false;
+let activeVisitorMatricule = "";
 let excelQuizResults = [];
 let excelQuizResultsLoading = false;
 let excelQuizResultsLoaded = false;
@@ -2036,7 +2037,7 @@ async function showResult() {
   elements.resultStatusCard.classList.toggle("is-fail", performanceKey === "fail");
 
   if (!isAdmin()) {
-    const matricule = localStorage.getItem(QUIZ_VISITOR_MATRICULE_KEY) || getVisitorMatricule();
+    const matricule = activeVisitorMatricule || getVisitorMatricule();
     if (matricule) {
       const saved = await saveVisitorResult(score, activeQuestions.length, rate, passed);
       elements.resultNote.textContent = saved
@@ -2056,10 +2057,8 @@ elements.startButton.addEventListener("click", startQuiz);
 elements.restartButton.addEventListener("click", startQuiz);
 
 if (elements.matriculeInput) {
-  const lastMatricule = localStorage.getItem(QUIZ_VISITOR_MATRICULE_KEY) || "";
-  if (lastMatricule) {
-    elements.matriculeInput.value = lastMatricule;
-  }
+  localStorage.removeItem(QUIZ_VISITOR_MATRICULE_KEY);
+  elements.matriculeInput.value = "";
 
   elements.matriculeInput.addEventListener("input", () => {
     if (getVisitorMatricule()) {
