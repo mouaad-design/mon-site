@@ -79,6 +79,21 @@ const quizUi = {
     adminStatusSaved: "La banque de questions a ete mise a jour.",
     adminStatusDeleted: "La question a ete supprimee.",
     adminStatusMissing: "Completez au minimum les champs FR et les 4 options.",
+    dashboardQuizResultsKicker: "Resultats visiteurs",
+    dashboardQuizResultsTitle: "Notes du quiz",
+    dashboardQuizResultsSearch: "Rechercher par matricule, note ou date",
+    dashboardQuizResultsRefresh: "Actualiser",
+    dashboardQuizResultsDownload: "Telecharger Excel",
+    dashboardQuizResultsLoading: "Chargement des notes...",
+    dashboardQuizResultsEmpty: "Aucune note n'est encore enregistree.",
+    dashboardQuizResultsLoadFailed: "Impossible de charger les notes Excel.",
+    dashboardQuizResultsDeleted: "Note supprimee du fichier Excel.",
+    dashboardQuizResultsDeleteFailed: "Impossible de supprimer cette note.",
+    dashboardQuizResultsDelete: "Supprimer",
+    dashboardQuizResultsMatricule: "Matricule",
+    dashboardQuizResultsScore: "Note",
+    dashboardQuizResultsPercentage: "Pourcentage",
+    dashboardQuizResultsDate: "Date",
     resultSaveFailed: "La note n'a pas pu etre sauvegardee dans le fichier Excel.",
     confirmDeletePrompt: "Etes-vous sur de vouloir supprimer cet element ?"
   },
@@ -150,6 +165,21 @@ const quizUi = {
     adminStatusSaved: "The question bank has been updated.",
     adminStatusDeleted: "The question was deleted.",
     adminStatusMissing: "Please complete at least the FR question and the 4 options.",
+    dashboardQuizResultsKicker: "Visitor results",
+    dashboardQuizResultsTitle: "Quiz scores",
+    dashboardQuizResultsSearch: "Search by employee ID, score, or date",
+    dashboardQuizResultsRefresh: "Refresh",
+    dashboardQuizResultsDownload: "Download Excel",
+    dashboardQuizResultsLoading: "Loading scores...",
+    dashboardQuizResultsEmpty: "No score has been saved yet.",
+    dashboardQuizResultsLoadFailed: "Unable to load Excel scores.",
+    dashboardQuizResultsDeleted: "Score removed from the Excel file.",
+    dashboardQuizResultsDeleteFailed: "Unable to delete this score.",
+    dashboardQuizResultsDelete: "Delete",
+    dashboardQuizResultsMatricule: "Employee ID",
+    dashboardQuizResultsScore: "Score",
+    dashboardQuizResultsPercentage: "Percentage",
+    dashboardQuizResultsDate: "Date",
     resultSaveFailed: "The score could not be saved in the Excel file.",
     confirmDeletePrompt: "Are you sure you want to delete this item?"
   },
@@ -225,6 +255,21 @@ Object.assign(quizUi.ar, {
   adminStatusSaved: "تم تحديث بنك الأسئلة.",
   adminStatusDeleted: "تم حذف السؤال.",
   adminStatusMissing: "يرجى إكمال سؤال FR والخيارات الأربع على الأقل.",
+  dashboardQuizResultsKicker: "نتائج الزوار",
+  dashboardQuizResultsTitle: "نقاط الاختبار",
+  dashboardQuizResultsSearch: "ابحث بالماتريكول أو النقطة أو التاريخ",
+  dashboardQuizResultsRefresh: "تحديث",
+  dashboardQuizResultsDownload: "تحميل Excel",
+  dashboardQuizResultsLoading: "جاري تحميل النقاط...",
+  dashboardQuizResultsEmpty: "لا توجد أي نقطة مسجلة بعد.",
+  dashboardQuizResultsLoadFailed: "تعذر تحميل نقاط Excel.",
+  dashboardQuizResultsDeleted: "تم حذف النقطة من ملف Excel.",
+  dashboardQuizResultsDeleteFailed: "تعذر حذف هذه النقطة.",
+  dashboardQuizResultsDelete: "حذف",
+  dashboardQuizResultsMatricule: "الماتريكول",
+  dashboardQuizResultsScore: "النقطة",
+  dashboardQuizResultsPercentage: "النسبة",
+  dashboardQuizResultsDate: "التاريخ",
   resultSaveFailed: "تعذر حفظ النقطة في ملف Excel.",
   confirmDeletePrompt: "هل أنت متأكد من رغبتك في الحذف؟"
 });
@@ -1146,7 +1191,15 @@ const elements = {
   adminQuestionAr: document.getElementById("quizAdminQuestionAr"),
   adminOptionFr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionFr${index}`)),
   adminOptionEn: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionEn${index}`)),
-  adminOptionAr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionAr${index}`))
+  adminOptionAr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionAr${index}`)),
+  excelResultsPanel: document.querySelector("[data-dashboard-quiz-results]"),
+  excelResultsKicker: document.querySelector("[data-dashboard-quiz-results] [data-i18n='dashboardQuizResultsKicker']"),
+  excelResultsTitle: document.querySelector("[data-dashboard-quiz-results] [data-i18n='dashboardQuizResultsTitle']"),
+  excelResultsSearch: document.querySelector("[data-dashboard-quiz-search]"),
+  excelResultsRefreshButton: document.querySelector("[data-dashboard-quiz-refresh]"),
+  excelResultsDownloadLink: document.querySelector("[data-dashboard-quiz-download]"),
+  excelResultsStatus: document.querySelector("[data-dashboard-quiz-status]"),
+  excelResultsList: document.querySelector("[data-dashboard-quiz-list]")
 };
 
 function setText(element, value) {
@@ -1390,6 +1443,9 @@ let revealedAnswers = [];
 let currentQuestionIndex = 0;
 let selectedAdminQuestionId = "";
 let adminSessionActive = false;
+let excelQuizResults = [];
+let excelQuizResultsLoading = false;
+let excelQuizResultsLoaded = false;
 
 function setPanelVisibility() {
   elements.startPanel.classList.toggle("hidden", activeQuestions.length > 0);
@@ -1403,6 +1459,176 @@ function setAdminStatus(copyKey = "") {
   }
 
   elements.adminStatus.textContent = copyKey ? quizUi[currentLang][copyKey] : "";
+}
+
+function setExcelResultsStatus(copyKey = "", isError = false) {
+  if (!elements.excelResultsStatus) {
+    return;
+  }
+
+  elements.excelResultsStatus.hidden = !copyKey;
+  elements.excelResultsStatus.classList.toggle("is-error", Boolean(isError));
+  elements.excelResultsStatus.textContent = copyKey ? quizUi[currentLang][copyKey] : "";
+}
+
+function formatExcelResultDate(result) {
+  if (result.date && result.time) {
+    return `${result.date} ${result.time}`;
+  }
+
+  if (!result.createdAt) {
+    return "";
+  }
+
+  try {
+    const locale = currentLang === "ar" ? "ar-MA" : currentLang === "en" ? "en-US" : "fr-MA";
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date(result.createdAt));
+  } catch {
+    return String(result.createdAt);
+  }
+}
+
+function getFilteredExcelQuizResults() {
+  const query = String(elements.excelResultsSearch?.value || "").trim().toLowerCase();
+
+  if (!query) {
+    return excelQuizResults;
+  }
+
+  return excelQuizResults.filter((result) => {
+    return [
+      result.matricule,
+      result.score,
+      result.percentage,
+      result.rate,
+      result.date,
+      result.time
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(query);
+  });
+}
+
+function renderExcelQuizResults() {
+  if (!elements.excelResultsList) {
+    return;
+  }
+
+  elements.excelResultsList.innerHTML = "";
+
+  if (!isAdmin()) {
+    return;
+  }
+
+  if (excelQuizResultsLoading) {
+    const message = document.createElement("p");
+    message.className = "dashboard-quiz-result";
+    message.textContent = quizUi[currentLang].dashboardQuizResultsLoading;
+    elements.excelResultsList.appendChild(message);
+    return;
+  }
+
+  const results = getFilteredExcelQuizResults();
+
+  if (!results.length) {
+    const message = document.createElement("p");
+    message.className = "dashboard-quiz-result";
+    message.textContent = quizUi[currentLang].dashboardQuizResultsEmpty;
+    elements.excelResultsList.appendChild(message);
+    return;
+  }
+
+  results.forEach((result) => {
+    const item = document.createElement("article");
+    item.className = "dashboard-quiz-result";
+
+    const content = document.createElement("div");
+
+    const title = document.createElement("p");
+    title.className = "dashboard-quiz-result__title";
+    title.textContent = `${quizUi[currentLang].dashboardQuizResultsMatricule}: ${result.matricule || "-"}`;
+
+    const meta = document.createElement("div");
+    meta.className = "dashboard-quiz-result__meta";
+
+    [
+      `${quizUi[currentLang].dashboardQuizResultsScore}: ${result.score} / ${result.totalQuestions}`,
+      `${quizUi[currentLang].dashboardQuizResultsPercentage}: ${result.percentage ?? result.rate}%`,
+      `${quizUi[currentLang].dashboardQuizResultsDate}: ${formatExcelResultDate(result)}`
+    ].forEach((value) => {
+      const pill = document.createElement("span");
+      pill.textContent = value;
+      meta.appendChild(pill);
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "dashboard-quiz-result__delete";
+    deleteButton.textContent = quizUi[currentLang].dashboardQuizResultsDelete;
+    deleteButton.addEventListener("click", () => {
+      deleteExcelQuizResult(result.index);
+    });
+
+    content.append(title, meta);
+    item.append(content, deleteButton);
+    elements.excelResultsList.appendChild(item);
+  });
+}
+
+async function loadExcelQuizResults() {
+  if (!elements.excelResultsList || !isAdmin() || !canUseServerApi()) {
+    return;
+  }
+
+  excelQuizResultsLoading = true;
+  setExcelResultsStatus("");
+  renderExcelQuizResults();
+
+  try {
+    const response = await fetch("./api/quiz-results", {
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      throw new Error("load_failed");
+    }
+
+    const payload = await response.json();
+    excelQuizResults = Array.isArray(payload.results) ? payload.results : [];
+    excelQuizResultsLoaded = true;
+  } catch {
+    excelQuizResults = [];
+    setExcelResultsStatus("dashboardQuizResultsLoadFailed", true);
+  } finally {
+    excelQuizResultsLoading = false;
+    renderExcelQuizResults();
+  }
+}
+
+async function deleteExcelQuizResult(index) {
+  if (index === undefined || index === null || !confirmDeleteAction()) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`./api/quiz-results/${encodeURIComponent(index)}`, {
+      method: "DELETE",
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      throw new Error("delete_failed");
+    }
+
+    setExcelResultsStatus("dashboardQuizResultsDeleted");
+    await loadExcelQuizResults();
+  } catch {
+    setExcelResultsStatus("dashboardQuizResultsDeleteFailed", true);
+  }
 }
 
 function resetAdminForm() {
@@ -1522,9 +1748,16 @@ function renderAdminPanel() {
   }
 
   elements.adminPanel.classList.toggle("hidden", !isAdmin());
-  if (elements.resultsPanel) {
-    elements.resultsPanel.classList.toggle("hidden", !isAdmin());
+
+  if (elements.excelResultsPanel) {
+    elements.excelResultsPanel.hidden = !isAdmin();
+    elements.excelResultsPanel.classList.toggle("hidden", !isAdmin());
+
+    if (isAdmin() && !excelQuizResultsLoaded && !excelQuizResultsLoading) {
+      loadExcelQuizResults();
+    }
   }
+
   if (!isAdmin()) {
     return;
   }
@@ -1630,8 +1863,16 @@ function setLanguage(lang) {
   setText(elements.adminCorrectLabel, copy.adminCorrectLabel);
   setText(elements.adminSaveButton, copy.adminSave);
   setText(elements.adminDeleteButton, copy.adminDelete);
+  setText(elements.excelResultsKicker, copy.dashboardQuizResultsKicker);
+  setText(elements.excelResultsTitle, copy.dashboardQuizResultsTitle);
+  setText(elements.excelResultsRefreshButton, copy.dashboardQuizResultsRefresh);
+  setText(elements.excelResultsDownloadLink, copy.dashboardQuizResultsDownload);
+  if (elements.excelResultsSearch) {
+    elements.excelResultsSearch.placeholder = copy.dashboardQuizResultsSearch;
+  }
 
   renderAdminPanel();
+  renderExcelQuizResults();
   if (selectedAdminQuestionId) {
     fillAdminForm(getQuestionById(selectedAdminQuestionId));
   }
@@ -1824,6 +2065,22 @@ if (elements.adminSaveButton) {
 
 if (elements.adminDeleteButton) {
   elements.adminDeleteButton.addEventListener("click", deleteAdminQuestion);
+}
+
+if (elements.excelResultsRefreshButton) {
+  elements.excelResultsRefreshButton.addEventListener("click", loadExcelQuizResults);
+}
+
+if (elements.excelResultsSearch) {
+  elements.excelResultsSearch.addEventListener("input", renderExcelQuizResults);
+}
+
+if (elements.excelResultsDownloadLink) {
+  elements.excelResultsDownloadLink.addEventListener("click", (event) => {
+    if (!isAdmin()) {
+      event.preventDefault();
+    }
+  });
 }
 
 if (requireQuizAccess()) {
