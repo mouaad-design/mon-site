@@ -124,6 +124,27 @@
 
         <p class="quiz-admin-status" id="quizAdminStatus"></p>
 
+        <section class="quiz-admin-results" data-dashboard-quiz-results data-admin-only hidden>
+          <div class="quiz-admin-results__head">
+            <div>
+              <span class="quiz-admin-kicker" data-i18n="dashboardQuizResultsKicker">Resultats visiteurs</span>
+              <h3 data-i18n="dashboardQuizResultsTitle">Notes du quiz</h3>
+            </div>
+            <div class="quiz-admin-results__actions">
+              <input
+                type="search"
+                class="quiz-admin-results__search"
+                data-dashboard-quiz-search
+                data-i18n-placeholder="dashboardQuizResultsSearch"
+                placeholder="Rechercher par matricule, note ou date">
+              <button type="button" class="quiz-nav-btn quiz-nav-btn--soft" data-dashboard-quiz-refresh data-i18n="dashboardQuizResultsRefresh">Actualiser</button>
+              <a class="quiz-nav-btn quiz-nav-btn--soft" href="./api/quiz-results/download" data-dashboard-quiz-download data-i18n="dashboardQuizResultsDownload">Telecharger Excel</a>
+            </div>
+          </div>
+          <p class="quiz-admin-results__status" data-dashboard-quiz-status hidden></p>
+          <div class="quiz-admin-results__list" data-dashboard-quiz-list></div>
+        </section>
+
       </section>
 
       <section class="quiz-start-panel" id="quizStartPanel">
