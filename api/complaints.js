@@ -1,11 +1,10 @@
 const crypto = require("crypto");
-const { readJsonFile, writeJsonFile } = require("../services/fileStore");
+const { readComplaints, writeComplaints } = require("../services/complaintStore");
 const { uploadComplaintImages, cleanupUploadedImages, deleteImagesByUrl } = require("../services/cloudinaryImages");
 
 const VALID_TYPES = new Set(["message", "recommendation", "complaint"]);
 const VALID_STATUSES = new Set(["pending", "in_progress", "resolved"]);
 const VALID_PRIORITIES = new Set(["formal", "informal"]);
-const COMPLAINTS_FILE = "complaints.json";
 
 function cleanString(value, fallback = "") {
   const cleaned = String(value || "").trim();
@@ -38,15 +37,6 @@ function sendApiError(sendJson, response, statusCode, message) {
   sendJson(response, statusCode, {
     error: message
   });
-}
-
-async function readComplaints() {
-  const complaints = await readJsonFile(COMPLAINTS_FILE, []);
-  return Array.isArray(complaints) ? complaints : [];
-}
-
-async function writeComplaints(complaints) {
-  await writeJsonFile(COMPLAINTS_FILE, complaints);
 }
 
 async function listComplaints(response, sendJson) {

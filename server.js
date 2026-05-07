@@ -7,6 +7,7 @@ const multer = require("multer");
 const { cloudinary, assertCloudinaryConfigured } = require("./config/cloudinary");
 const { handleComplaintsApi } = require("./api/complaints");
 const { handleQuizResultsApi } = require("./api/quizResults");
+const { initComplaintStore } = require("./services/complaintStore");
 const { ensureQuizResultsFile } = require("./services/quizExcelStore");
 const {
   initMediaStore,
@@ -1089,5 +1090,13 @@ server.listen(PORT, async () => {
     })
     .catch((error) => {
       console.error(`Quiz results Excel unavailable: ${error.message}`);
+    });
+
+  initComplaintStore()
+    .then((filePath) => {
+      console.log(`Complaints metadata ready: ${path.relative(ROOT_DIR, filePath)}`);
+    })
+    .catch((error) => {
+      console.error(`Complaints metadata unavailable: ${error.message}`);
     });
 });

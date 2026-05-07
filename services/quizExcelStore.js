@@ -97,15 +97,27 @@ function downloadFile(url, destination) {
 }
 
 async function restoreExcelFromCloudinary() {
+  const candidatePublicIds = [
+    QUIZ_RESULTS_CLOUDINARY_PUBLIC_ID,
+    `${QUIZ_RESULTS_CLOUDINARY_PUBLIC_ID}.xlsx`
+  ];
+
   try {
     assertCloudinaryConfigured();
-    const resource = await cloudinary.api.resource(QUIZ_RESULTS_CLOUDINARY_PUBLIC_ID, {
-      resource_type: "raw"
-    });
 
-    if (resource && resource.secure_url) {
-      await downloadFile(resource.secure_url, QUIZ_RESULTS_FILE);
-      return true;
+    for (const publicId of candidatePublicIds) {
+      try {
+        const resource = await cloudinary.api.resource(publicId, {
+          resource_type: "raw"
+        });
+
+        if (resource && resource.secure_url) {
+          await downloadFile(resource.secure_url, QUIZ_RESULTS_FILE);
+          return true;
+        }
+      } catch {
+        // Try the next possible raw public id.
+      }
     }
   } catch {
     // The workbook may not exist in Cloudinary yet. A new local one will be created.
@@ -147,6 +159,14 @@ async function ensureWorkbook() {
 
     await fs.access(QUIZ_RESULTS_FILE);
     await workbook.xlsx.readFile(QUIZ_RESULTS_FILE);
+
+    const existingWorksheet = workbook.getWorksheet(WORKSHEET_NAME) || workbook.worksheets[0];
+    if (!existingWorksheet || existingWorksheet.rowCount <= 1) {
+      const restored = await restoreExcelFromCloudinary();
+      if (restored) {
+        await workbook.xlsx.readFile(QUIZ_RESULTS_FILE);
+      }
+    }
   } catch {
     const worksheet = workbook.addWorksheet(WORKSHEET_NAME);
     styleWorksheet(worksheet);

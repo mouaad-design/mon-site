@@ -113,12 +113,12 @@ async function restoreMediaFromCloudinary() {
     });
 
     if (!resource || !resource.secure_url) {
-      return [];
+      return null;
     }
 
     return normalizeMediaList(JSON.parse(await downloadText(resource.secure_url)));
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -157,7 +157,7 @@ async function readMedia() {
   }
 
   mediaItems = await restoreMediaFromCloudinary();
-  if (mediaItems.length) {
+  if (mediaItems) {
     await writeMedia(mediaItems, { sync: false });
     return mediaItems;
   }
@@ -245,7 +245,8 @@ async function removeDocumentMedia(documentItem = {}) {
 }
 
 async function initMediaStore() {
-  const mediaItems = await readMedia();
+  const cloudMediaItems = await restoreMediaFromCloudinary();
+  const mediaItems = cloudMediaItems || (await readMedia());
   await writeMedia(mediaItems, { sync: false });
   return MEDIA_FILE;
 }

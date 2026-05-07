@@ -4,4 +4,5 @@ temp/
 data/*
 !data/
 !data/media.json
+!data/complaints.json
 *.log
