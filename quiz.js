@@ -13,7 +13,6 @@ const OPTION_LETTERS = ["A", "B", "C", "D"];
 const quizUi = {
   fr: {
     pageTitle: "SC Training Platform - Quiz Special Characteristics Stellantis",
-    back: "Retour au dashboard",
     clientLabel: "Client selectionne",
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",
@@ -80,23 +79,11 @@ const quizUi = {
     adminStatusSaved: "La banque de questions a ete mise a jour.",
     adminStatusDeleted: "La question a ete supprimee.",
     adminStatusMissing: "Completez au minimum les champs FR et les 4 options.",
-    resultsKicker: "Resultats visiteurs",
-    resultsTitle: "Notes enregistrees",
-    resultsRefresh: "Actualiser",
-    resultsLoading: "Chargement des notes...",
-    resultsEmpty: "Aucune note visiteur n'est encore enregistree.",
-    resultsLoadFailed: "Impossible de charger les notes.",
-    resultSaveFailed: "La note n'a pas pu etre sauvegardee dans la base de donnees.",
-    resultsPassed: "Reussi",
-    resultsFailed: "Echoue",
-    resultsMatricule: "Matricule",
-    resultsScore: "Note",
-    resultsDate: "Date",
+    resultSaveFailed: "La note n'a pas pu etre sauvegardee dans le fichier Excel.",
     confirmDeletePrompt: "Etes-vous sur de vouloir supprimer cet element ?"
   },
   en: {
     pageTitle: "SC Training Platform - Stellantis Special Characteristics Quiz",
-    back: "Back to dashboard",
     clientLabel: "Selected client",
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",
@@ -163,23 +150,11 @@ const quizUi = {
     adminStatusSaved: "The question bank has been updated.",
     adminStatusDeleted: "The question was deleted.",
     adminStatusMissing: "Please complete at least the FR question and the 4 options.",
-    resultsKicker: "Visitor results",
-    resultsTitle: "Saved scores",
-    resultsRefresh: "Refresh",
-    resultsLoading: "Loading scores...",
-    resultsEmpty: "No visitor score has been saved yet.",
-    resultsLoadFailed: "Scores could not be loaded.",
-    resultSaveFailed: "The score could not be saved in the database.",
-    resultsPassed: "Passed",
-    resultsFailed: "Failed",
-    resultsMatricule: "Employee ID",
-    resultsScore: "Score",
-    resultsDate: "Date",
+    resultSaveFailed: "The score could not be saved in the Excel file.",
     confirmDeletePrompt: "Are you sure you want to delete this item?"
   },
   ar: {
     pageTitle: "SC Training Platform - اختبار الميزات الخاصة Stellantis",
-    back: "العودة إلى لوحة القيادة",
     clientLabel: "العميل المحدد",
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",
@@ -250,18 +225,7 @@ Object.assign(quizUi.ar, {
   adminStatusSaved: "تم تحديث بنك الأسئلة.",
   adminStatusDeleted: "تم حذف السؤال.",
   adminStatusMissing: "يرجى إكمال سؤال FR والخيارات الأربع على الأقل.",
-  resultsKicker: "نتائج الزوار",
-  resultsTitle: "النقاط المحفوظة",
-  resultsRefresh: "تحديث",
-  resultsLoading: "جاري تحميل النقاط...",
-  resultsEmpty: "لا توجد أي نقطة محفوظة للزوار بعد.",
-  resultsLoadFailed: "تعذر تحميل النقاط.",
-  resultSaveFailed: "تعذر حفظ النقطة في قاعدة البيانات.",
-  resultsPassed: "ناجح",
-  resultsFailed: "راسب",
-  resultsMatricule: "رقم التأجير",
-  resultsScore: "النقطة",
-  resultsDate: "التاريخ",
+  resultSaveFailed: "تعذر حفظ النقطة في ملف Excel.",
   confirmDeletePrompt: "هل أنت متأكد من رغبتك في الحذف؟"
 });
 
@@ -1121,10 +1085,6 @@ const defaultQuizQuestions = [
 const elements = {
   html: document.documentElement,
   langButtons: Array.from(document.querySelectorAll(".lang-btn")),
-  backLinks: [
-    document.getElementById("quizBackAction"),
-    document.getElementById("quizResultBack")
-  ],
   clientLabel: document.getElementById("quizClientLabel"),
   clientValue: document.getElementById("quizClientValue"),
   titleKicker: document.getElementById("quizTitleKicker"),
@@ -1186,12 +1146,7 @@ const elements = {
   adminQuestionAr: document.getElementById("quizAdminQuestionAr"),
   adminOptionFr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionFr${index}`)),
   adminOptionEn: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionEn${index}`)),
-  adminOptionAr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionAr${index}`)),
-  resultsPanel: document.getElementById("quizAdminResultsPanel"),
-  resultsKicker: document.getElementById("quizResultsKicker"),
-  resultsTitle: document.getElementById("quizResultsTitle"),
-  resultsRefreshButton: document.getElementById("quizResultsRefreshBtn"),
-  resultsList: document.getElementById("quizResultsList")
+  adminOptionAr: [0, 1, 2, 3].map((index) => document.getElementById(`quizAdminOptionAr${index}`))
 };
 
 function setText(element, value) {
@@ -1219,7 +1174,11 @@ function getInitialLanguage() {
 }
 
 function isAdmin() {
-  return localStorage.getItem(QUIZ_ROLE_STORAGE_KEY) === "true";
+  return adminSessionActive === true;
+}
+
+function setAdminState(nextValue) {
+  adminSessionActive = nextValue === true;
 }
 
 function canUseServerApi() {
@@ -1228,6 +1187,8 @@ function canUseServerApi() {
 
 async function syncQuizAdminSession() {
   if (!canUseServerApi()) {
+    setAdminState(false);
+    renderAdminPanel();
     return;
   }
 
@@ -1237,20 +1198,21 @@ async function syncQuizAdminSession() {
     });
 
     if (!response.ok) {
+      setAdminState(false);
+      renderAdminPanel();
       return;
     }
 
     const payload = await response.json();
     if (payload && typeof payload.isAdmin === "boolean") {
-      localStorage.setItem(QUIZ_ROLE_STORAGE_KEY, payload.isAdmin ? "true" : "false");
+      setAdminState(payload.isAdmin);
+      localStorage.removeItem(QUIZ_ROLE_STORAGE_KEY);
       setLanguage(currentLang);
       renderAdminPanel();
-      if (payload.isAdmin) {
-        loadQuizResults();
-      }
     }
   } catch {
-    // Keep the existing local role when the API is unavailable.
+    setAdminState(false);
+    renderAdminPanel();
   }
 }
 
@@ -1335,6 +1297,7 @@ async function saveVisitorResult(score, totalQuestions, rate, passed) {
       matricule,
       score,
       totalQuestions,
+      percentage: rate,
       rate,
       passed,
       client: QUIZ_CLIENT,
@@ -1410,22 +1373,6 @@ function formatText(template, values) {
   return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
 }
 
-function formatQuizResultDate(value) {
-  if (!value) {
-    return "";
-  }
-
-  try {
-    const locale = currentLang === "ar" ? "ar-MA" : currentLang === "en" ? "en-US" : "fr-MA";
-    return new Intl.DateTimeFormat(locale, {
-      dateStyle: "medium",
-      timeStyle: "short"
-    }).format(new Date(value));
-  } catch {
-    return String(value);
-  }
-}
-
 function shuffle(array) {
   const copy = [...array];
   for (let index = copy.length - 1; index > 0; index -= 1) {
@@ -1442,9 +1389,7 @@ let answers = [];
 let revealedAnswers = [];
 let currentQuestionIndex = 0;
 let selectedAdminQuestionId = "";
-let quizResults = [];
-let quizResultsLoading = false;
-let quizResultsLoadFailed = false;
+let adminSessionActive = false;
 
 function setPanelVisibility() {
   elements.startPanel.classList.toggle("hidden", activeQuestions.length > 0);
@@ -1458,104 +1403,6 @@ function setAdminStatus(copyKey = "") {
   }
 
   elements.adminStatus.textContent = copyKey ? quizUi[currentLang][copyKey] : "";
-}
-
-function renderQuizResults() {
-  if (!elements.resultsList) {
-    return;
-  }
-
-  const copy = quizUi[currentLang];
-  elements.resultsList.innerHTML = "";
-
-  if (!isAdmin()) {
-    return;
-  }
-
-  if (quizResultsLoading) {
-    const message = document.createElement("p");
-    message.className = "quiz-results-empty";
-    message.textContent = copy.resultsLoading;
-    elements.resultsList.appendChild(message);
-    return;
-  }
-
-  if (quizResultsLoadFailed) {
-    const message = document.createElement("p");
-    message.className = "quiz-results-empty is-error";
-    message.textContent = copy.resultsLoadFailed;
-    elements.resultsList.appendChild(message);
-    return;
-  }
-
-  if (!quizResults.length) {
-    const message = document.createElement("p");
-    message.className = "quiz-results-empty";
-    message.textContent = copy.resultsEmpty;
-    elements.resultsList.appendChild(message);
-    return;
-  }
-
-  quizResults.forEach((result) => {
-    const item = document.createElement("article");
-    item.className = "quiz-result-row";
-
-    const top = document.createElement("div");
-    top.className = "quiz-result-row__top";
-
-    const matricule = document.createElement("strong");
-    matricule.textContent = result.matricule || "-";
-
-    const status = document.createElement("span");
-    status.className = `quiz-result-row__status ${result.passed ? "is-pass" : "is-fail"}`;
-    status.textContent = result.passed ? copy.resultsPassed : copy.resultsFailed;
-
-    top.append(matricule, status);
-
-    const meta = document.createElement("div");
-    meta.className = "quiz-result-row__meta";
-
-    [
-      `${copy.resultsScore}: ${result.score} / ${result.totalQuestions} (${result.rate}%)`,
-      `${copy.resultsDate}: ${formatQuizResultDate(result.createdAt)}`
-    ].forEach((value) => {
-      const pill = document.createElement("span");
-      pill.textContent = value;
-      meta.appendChild(pill);
-    });
-
-    item.append(top, meta);
-    elements.resultsList.appendChild(item);
-  });
-}
-
-async function loadQuizResults() {
-  if (!isAdmin() || !canUseServerApi() || !elements.resultsList) {
-    return;
-  }
-
-  quizResultsLoading = true;
-  quizResultsLoadFailed = false;
-  renderQuizResults();
-
-  try {
-    const response = await fetch("./api/quiz-results", {
-      credentials: "same-origin"
-    });
-
-    if (!response.ok) {
-      throw new Error("load_failed");
-    }
-
-    const payload = await response.json();
-    quizResults = Array.isArray(payload.results) ? payload.results : [];
-  } catch {
-    quizResults = [];
-    quizResultsLoadFailed = true;
-  } finally {
-    quizResultsLoading = false;
-    renderQuizResults();
-  }
 }
 
 function resetAdminForm() {
@@ -1684,7 +1531,6 @@ function renderAdminPanel() {
 
   renderAdminSectionOptions();
   renderAdminQuestionSelect();
-  renderQuizResults();
 }
 
 function saveAdminQuestion() {
@@ -1748,13 +1594,6 @@ function setLanguage(lang) {
     button.classList.toggle("active", button.dataset.lang === lang);
   });
 
-  elements.backLinks.forEach((link) => {
-    if (link) {
-      link.textContent = copy.back;
-      link.href = `./dashboard.html?client=${QUIZ_CLIENT}`;
-    }
-  });
-
   setText(elements.clientLabel, copy.clientLabel);
   setText(elements.clientValue, copy.clientValue);
   setText(elements.titleKicker, copy.titleKicker);
@@ -1791,12 +1630,8 @@ function setLanguage(lang) {
   setText(elements.adminCorrectLabel, copy.adminCorrectLabel);
   setText(elements.adminSaveButton, copy.adminSave);
   setText(elements.adminDeleteButton, copy.adminDelete);
-  setText(elements.resultsKicker, copy.resultsKicker);
-  setText(elements.resultsTitle, copy.resultsTitle);
-  setText(elements.resultsRefreshButton, copy.resultsRefresh);
 
   renderAdminPanel();
-  renderQuizResults();
   if (selectedAdminQuestionId) {
     fillAdminForm(getQuestionById(selectedAdminQuestionId));
   }
@@ -1991,15 +1826,12 @@ if (elements.adminDeleteButton) {
   elements.adminDeleteButton.addEventListener("click", deleteAdminQuestion);
 }
 
-if (elements.resultsRefreshButton) {
-  elements.resultsRefreshButton.addEventListener("click", loadQuizResults);
-}
-
 if (requireQuizAccess()) {
+  setAdminState(false);
+  localStorage.removeItem(QUIZ_ROLE_STORAGE_KEY);
   setLanguage(currentLang);
   renderAdminPanel();
   resetAdminForm();
-  loadQuizResults();
   syncQuizAdminSession();
   setPanelVisibility();
 }

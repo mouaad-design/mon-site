@@ -5,7 +5,6 @@ const LOCATION_ACCESS_AT_KEY = "sc-training-location-access-at";
 const CLIENT_STORAGE_KEY = "sc-training-client";
 const ADMIN_STORAGE_KEY = "sc-training-is-admin";
 const VISITOR_ACCESS_DURATION_MS = 30 * 60 * 1000;
-const ADMIN_PASSWORD = "Quality0Defects";
 const COMPANY_LAT = 34.304222;
 const COMPANY_LNG = -6.390333;
 const ALLOWED_RADIUS_METERS = 150;
@@ -25,6 +24,7 @@ const SUPPORT_MIN_WEEK = "2026-W01";
 
 const langButtons = document.querySelectorAll(".lang-btn");
 const translatableNodes = document.querySelectorAll("[data-i18n]");
+const placeholderNodes = document.querySelectorAll("[data-i18n-placeholder]");
 const revealNodes = document.querySelectorAll(".reveal-section");
 const clientCardNodes = document.querySelectorAll("[data-client]");
 const clientNameNodes = document.querySelectorAll("[data-client-name]");
@@ -33,6 +33,12 @@ const documentActionNodes = document.querySelectorAll("[data-doc-action]");
 const quizActionNodes = document.querySelectorAll("[data-quiz-action]");
 const supportActionNodes = document.querySelectorAll("[data-support-action]");
 const dashboardContentNode = document.querySelector("[data-dashboard-content]");
+const dashboardQuizResultsPanelNode = document.querySelector("[data-dashboard-quiz-results]");
+const dashboardQuizResultsListNode = document.querySelector("[data-dashboard-quiz-list]");
+const dashboardQuizResultsSearchNode = document.querySelector("[data-dashboard-quiz-search]");
+const dashboardQuizResultsRefreshNode = document.querySelector("[data-dashboard-quiz-refresh]");
+const dashboardQuizResultsDownloadNode = document.querySelector("[data-dashboard-quiz-download]");
+const dashboardQuizResultsStatusNode = document.querySelector("[data-dashboard-quiz-status]");
 const documentFrameNode = document.querySelector("[data-doc-frame]");
 const documentPdfNode = document.querySelector("[data-doc-pdf]");
 const documentVideoNode = document.querySelector("[data-doc-video]");
@@ -108,11 +114,15 @@ let supportPhotoItems = [];
 let supportPhotoProcessing = false;
 let supportEntries = [];
 let supportEntriesLoading = false;
+let dashboardQuizResults = [];
+let dashboardQuizResultsLoading = false;
+let dashboardQuizResultsLoaded = false;
 let documentSelectionOverride = "";
 let pdfRenderToken = 0;
 let activeGalleryItems = [];
 let activeGalleryIndex = 0;
 let activeDocumentZoom = 1;
+let adminSessionActive = false;
 let adminLoginStatusKey = "";
 let documentActionStatusKey = "";
 let documentActionStatusState = "info";
@@ -185,12 +195,12 @@ function getText(lang, key) {
 }
 
 function isAdmin() {
-  return localStorage.getItem(ADMIN_STORAGE_KEY) === "true";
+  return adminSessionActive === true;
 }
 
 function setAdminState(nextValue) {
-  localStorage.setItem(ADMIN_STORAGE_KEY, nextValue ? "true" : "false");
-  document.body.dataset.role = nextValue ? "admin" : "viewer";
+  adminSessionActive = nextValue === true;
+  document.body.dataset.role = adminSessionActive ? "admin" : "viewer";
 }
 
 function applyRoleUi(lang = document.documentElement.lang || "fr") {
@@ -207,6 +217,13 @@ function applyRoleUi(lang = document.documentElement.lang || "fr") {
 
   if (supportViewerPanelNode) {
     supportViewerPanelNode.hidden = adminActive;
+  }
+
+  if (dashboardQuizResultsPanelNode) {
+    dashboardQuizResultsPanelNode.hidden = !adminActive;
+    if (adminActive && !dashboardQuizResultsLoaded && !dashboardQuizResultsLoading) {
+      loadDashboardQuizResults(lang);
+    }
   }
 
   updateSupportAccess(lang);
@@ -614,6 +631,7 @@ function setVerifyButtonLabel(lang, key, disabled = false) {
 
 async function syncAdminSession() {
   if (!canUseServerApi()) {
+    setAdminState(false);
     applyRoleUi(document.documentElement.lang || "fr");
     return;
   }
@@ -623,6 +641,7 @@ async function syncAdminSession() {
       credentials: "same-origin"
     });
     if (!response.ok) {
+      setAdminState(false);
       applyRoleUi(document.documentElement.lang || "fr");
       return;
     }
@@ -632,7 +651,7 @@ async function syncAdminSession() {
       setAdminState(payload.isAdmin);
     }
   } catch {
-    // Keep local admin state when the Node API is unavailable (static hosting).
+    setAdminState(false);
   }
 
   applyRoleUi(document.documentElement.lang || "fr");
@@ -683,20 +702,9 @@ async function handleAdminLogin(password, lang) {
   }
 
   if (!canUseServerApi()) {
-    const granted = password === ADMIN_PASSWORD;
-    setAdminState(granted);
-
-    if (!granted) {
-      updateAdminLoginStatus(lang, "adminAccessDenied", "error");
-      return;
-    }
-
-    unlockLocationGate("admin");
-    updateAdminLoginStatus(lang, "adminAccessGranted", "success");
-    window.setTimeout(() => {
-      closeAdminLoginModal();
-      openClientSelection();
-    }, 550);
+    setAdminState(false);
+    updateAdminLoginStatus(lang, "adminAccessDenied", "error");
+    applyRoleUi(lang);
     return;
   }
 
@@ -710,26 +718,15 @@ async function handleAdminLogin(password, lang) {
       body: JSON.stringify({ password })
     });
 
-    if (response.status === 404 || response.status === 405) {
-      const granted = password === ADMIN_PASSWORD;
-      setAdminState(granted);
+    if (!response.ok) {
+      setAdminState(false);
+      updateAdminLoginStatus(lang, "adminAccessDenied", "error");
       applyRoleUi(lang);
-
-      if (!granted) {
-        updateAdminLoginStatus(lang, "adminAccessDenied", "error");
-        return;
-      }
-
-      unlockLocationGate("admin");
-      updateAdminLoginStatus(lang, "adminAccessGranted", "success");
-      window.setTimeout(() => {
-        closeAdminLoginModal();
-        openClientSelection();
-      }, 550);
       return;
     }
 
-    if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    if (!payload || payload.isAdmin !== true) {
       setAdminState(false);
       updateAdminLoginStatus(lang, "adminAccessDenied", "error");
       applyRoleUi(lang);
@@ -745,21 +742,9 @@ async function handleAdminLogin(password, lang) {
       openClientSelection();
     }, 550);
   } catch {
-    const granted = password === ADMIN_PASSWORD;
-    setAdminState(granted);
+    setAdminState(false);
     applyRoleUi(lang);
-
-    if (!granted) {
-      updateAdminLoginStatus(lang, "adminAccessDenied", "error");
-      return;
-    }
-
-    unlockLocationGate("admin");
-    updateAdminLoginStatus(lang, "adminAccessGranted", "success");
-    window.setTimeout(() => {
-      closeAdminLoginModal();
-      openClientSelection();
-    }, 550);
+    updateAdminLoginStatus(lang, "adminAccessDenied", "error");
   }
 }
 
@@ -859,6 +844,178 @@ async function createSupportEntry(entry) {
   }
 
   return payload.complaint;
+}
+
+function setDashboardQuizStatus(lang, key = "", state = "info") {
+  if (!dashboardQuizResultsStatusNode) {
+    return;
+  }
+
+  dashboardQuizResultsStatusNode.hidden = !key;
+  dashboardQuizResultsStatusNode.classList.toggle("is-error", state === "error");
+  dashboardQuizResultsStatusNode.classList.toggle("is-success", state === "success");
+  dashboardQuizResultsStatusNode.textContent = key ? getText(lang, key) : "";
+}
+
+function formatDashboardQuizDate(result, lang) {
+  if (result.date && result.time) {
+    return `${result.date} ${result.time}`;
+  }
+
+  if (!result.createdAt) {
+    return "";
+  }
+
+  try {
+    const locale = lang === "ar" ? "ar-MA" : lang === "en" ? "en-US" : "fr-MA";
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date(result.createdAt));
+  } catch {
+    return String(result.createdAt);
+  }
+}
+
+function getFilteredDashboardQuizResults() {
+  const query = String((dashboardQuizResultsSearchNode && dashboardQuizResultsSearchNode.value) || "")
+    .trim()
+    .toLowerCase();
+
+  if (!query) {
+    return dashboardQuizResults;
+  }
+
+  return dashboardQuizResults.filter((result) => {
+    return [
+      result.matricule,
+      result.score,
+      result.percentage,
+      result.date,
+      result.time
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(query);
+  });
+}
+
+function renderDashboardQuizResults(lang = document.documentElement.lang || "fr") {
+  if (!dashboardQuizResultsListNode) {
+    return;
+  }
+
+  dashboardQuizResultsListNode.innerHTML = "";
+
+  if (!isAdmin()) {
+    return;
+  }
+
+  if (dashboardQuizResultsLoading) {
+    const messageNode = document.createElement("p");
+    messageNode.className = "dashboard-quiz-result";
+    messageNode.textContent = getText(lang, "dashboardQuizResultsLoading");
+    dashboardQuizResultsListNode.appendChild(messageNode);
+    return;
+  }
+
+  const results = getFilteredDashboardQuizResults();
+
+  if (!results.length) {
+    const messageNode = document.createElement("p");
+    messageNode.className = "dashboard-quiz-result";
+    messageNode.textContent = getText(lang, "dashboardQuizResultsEmpty");
+    dashboardQuizResultsListNode.appendChild(messageNode);
+    return;
+  }
+
+  results.forEach((result) => {
+    const itemNode = document.createElement("article");
+    itemNode.className = "dashboard-quiz-result";
+
+    const contentNode = document.createElement("div");
+    const titleNode = document.createElement("p");
+    titleNode.className = "dashboard-quiz-result__title";
+    titleNode.textContent = `${getText(lang, "dashboardQuizResultsMatricule")}: ${result.matricule || "-"}`;
+
+    const metaNode = document.createElement("div");
+    metaNode.className = "dashboard-quiz-result__meta";
+    [
+      `${getText(lang, "dashboardQuizResultsScore")}: ${result.score} / ${result.totalQuestions}`,
+      `${getText(lang, "dashboardQuizResultsPercentage")}: ${result.percentage ?? result.rate}%`,
+      `${getText(lang, "dashboardQuizResultsDate")}: ${formatDashboardQuizDate(result, lang)}`
+    ].forEach((value) => {
+      const pillNode = document.createElement("span");
+      pillNode.textContent = value;
+      metaNode.appendChild(pillNode);
+    });
+
+    contentNode.append(titleNode, metaNode);
+
+    const deleteNode = document.createElement("button");
+    deleteNode.type = "button";
+    deleteNode.className = "dashboard-quiz-result__delete";
+    deleteNode.textContent = getText(lang, "dashboardQuizResultsDelete");
+    deleteNode.addEventListener("click", () => {
+      deleteDashboardQuizResult(result.index, lang);
+    });
+
+    itemNode.append(contentNode, deleteNode);
+    dashboardQuizResultsListNode.appendChild(itemNode);
+  });
+}
+
+async function loadDashboardQuizResults(lang = document.documentElement.lang || "fr") {
+  if (!dashboardQuizResultsListNode || !isAdmin() || !canUseServerApi()) {
+    return;
+  }
+
+  dashboardQuizResultsLoading = true;
+  setDashboardQuizStatus(lang);
+  renderDashboardQuizResults(lang);
+
+  try {
+    const response = await fetch("./api/quiz-results", {
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      throw new Error("load_failed");
+    }
+
+    const payload = await response.json();
+    dashboardQuizResults = Array.isArray(payload.results) ? payload.results : [];
+    dashboardQuizResultsLoaded = true;
+  } catch {
+    dashboardQuizResults = [];
+    setDashboardQuizStatus(lang, "dashboardQuizResultsLoadFailed", "error");
+  } finally {
+    dashboardQuizResultsLoading = false;
+    renderDashboardQuizResults(lang);
+  }
+}
+
+async function deleteDashboardQuizResult(index, lang = document.documentElement.lang || "fr") {
+  if (!isAdmin() || index === undefined || index === null || !confirmDeleteAction(lang)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`./api/quiz-results/${encodeURIComponent(index)}`, {
+      method: "DELETE",
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      throw new Error("delete_failed");
+    }
+
+    dashboardQuizResults = dashboardQuizResults.filter((result) => result.index !== index);
+    setDashboardQuizStatus(lang, "dashboardQuizResultsDeleted", "success");
+    await loadDashboardQuizResults(lang);
+  } catch {
+    setDashboardQuizStatus(lang, "dashboardQuizResultsDeleteFailed", "error");
+  }
 }
 
 function getCurrentSupportLineValue() {
@@ -2366,6 +2523,10 @@ function setLanguage(lang) {
     node.textContent = getText(lang, node.dataset.i18n);
   });
 
+  placeholderNodes.forEach((node) => {
+    node.placeholder = getText(lang, node.dataset.i18nPlaceholder);
+  });
+
   langButtons.forEach((button) => {
     const isActive = button.dataset.lang === lang;
     button.classList.toggle("active", isActive);
@@ -2375,6 +2536,7 @@ function setLanguage(lang) {
   updateStoredClient(lang);
   updateDocumentViewer(lang);
   updateSupportCenter(lang);
+  renderDashboardQuizResults(lang);
   applyRoleUi(lang);
   setVerifyButtonLabel(lang, verifyButtonKey, verifyButtonDisabled);
   if (locationStatusKey) {
@@ -2804,6 +2966,26 @@ function setupLocationGate() {
       openSupportCenter(getStoredClient());
     });
   });
+
+  if (dashboardQuizResultsRefreshNode) {
+    dashboardQuizResultsRefreshNode.addEventListener("click", () => {
+      loadDashboardQuizResults(document.documentElement.lang || "fr");
+    });
+  }
+
+  if (dashboardQuizResultsSearchNode) {
+    dashboardQuizResultsSearchNode.addEventListener("input", () => {
+      renderDashboardQuizResults(document.documentElement.lang || "fr");
+    });
+  }
+
+  if (dashboardQuizResultsDownloadNode) {
+    dashboardQuizResultsDownloadNode.addEventListener("click", (event) => {
+      if (!isAdmin()) {
+        event.preventDefault();
+      }
+    });
+  }
 }
 
 langButtons.forEach((button) => {
@@ -2831,9 +3013,8 @@ setupLocationGate();
 setupDocumentUpload();
 setupSupportCenter();
 setupRevealAnimations();
-if (!localStorage.getItem(ADMIN_STORAGE_KEY)) {
-  setAdminState(false);
-}
+setAdminState(false);
+localStorage.removeItem(ADMIN_STORAGE_KEY);
 localStorage.removeItem("sc-training-location-access-persist");
 setLanguage(localStorage.getItem(STORAGE_KEY) || "fr");
 syncAdminSession();

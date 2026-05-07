@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=20260506-doc-dedupe">
+  <link rel="stylesheet" href="./style.css?v=20260507-role-security">
 </head>
   <body class="dashboard-page">
     <div class="hero-bg">
@@ -146,6 +146,27 @@
           <button type="button" class="dashboard-card-btn" data-support-action data-i18n="dashboardCardAction">Ouvrir</button>
         </article>
       </div>
+
+      <section class="dashboard-quiz-results reveal-section" data-dashboard-quiz-results data-admin-only hidden>
+        <div class="dashboard-quiz-results__head">
+          <div>
+            <p class="dashboard-group-label" data-i18n="dashboardQuizResultsKicker">Resultats visiteurs</p>
+            <h3 data-i18n="dashboardQuizResultsTitle">Notes du quiz</h3>
+          </div>
+          <div class="dashboard-quiz-results__actions">
+            <input
+              type="search"
+              class="dashboard-quiz-results__search"
+              data-dashboard-quiz-search
+              data-i18n-placeholder="dashboardQuizResultsSearch"
+              placeholder="Rechercher par matricule, note ou date">
+            <button type="button" class="dashboard-card-btn dashboard-quiz-results__button" data-dashboard-quiz-refresh data-i18n="dashboardQuizResultsRefresh">Actualiser</button>
+            <a class="dashboard-card-btn dashboard-quiz-results__button" href="./api/quiz-results/download" data-dashboard-quiz-download data-i18n="dashboardQuizResultsDownload">Telecharger Excel</a>
+          </div>
+        </div>
+        <p class="dashboard-quiz-results__status" data-dashboard-quiz-status hidden></p>
+        <div class="dashboard-quiz-results__list" data-dashboard-quiz-list></div>
+      </section>
     </section>
   </main>
 
@@ -154,8 +175,8 @@
     <p class="footer-subtitle" data-i18n="dashboardFooterSubtitle">Interface de pilotage formation et qualite pour un usage simple, lisible et professionnel.</p>
   </footer>
 
-  <script src="./translations.js?v=20260506-doc-dedupe"></script>
-  <script src="./script.js?v=20260506-doc-dedupe"></script>
+  <script src="./translations.js?v=20260507-role-security"></script>
+  <script src="./script.js?v=20260507-role-security"></script>
 </body>
 </html>
 

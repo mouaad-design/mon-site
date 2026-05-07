@@ -1,24 +1,11 @@
-const { connectDatabase } = require("../config/database");
-const QuizResult = require("../models/QuizResult");
-
-function cleanString(value, fallback = "") {
-  const cleaned = String(value || "").trim();
-  return cleaned || fallback;
-}
-
-function serializeQuizResult(result) {
-  return {
-    id: result._id.toString(),
-    matricule: result.matricule,
-    score: result.score,
-    totalQuestions: result.totalQuestions,
-    rate: result.rate,
-    passed: result.passed,
-    client: result.client || "stellantis",
-    language: result.language || "fr",
-    createdAt: result.createdAt
-  };
-}
+const fs = require("fs");
+const path = require("path");
+const {
+  appendQuizResult,
+  deleteQuizResult,
+  ensureQuizResultsFile,
+  listQuizResults
+} = require("../services/quizExcelStore");
 
 function sendApiError(sendJson, response, statusCode, message) {
   sendJson(response, statusCode, {
@@ -37,57 +24,58 @@ async function createQuizResult(request, response, deps) {
     return;
   }
 
-  const matricule = cleanString(body.matricule);
-  const score = Number(body.score);
-  const totalQuestions = Number(body.totalQuestions);
-  const rate = Number(body.rate);
-
-  if (!matricule) {
-    sendApiError(sendJson, response, 400, "Matricule is required");
-    return;
+  try {
+    const result = await appendQuizResult(body);
+    sendJson(response, 201, { result });
+  } catch (error) {
+    sendApiError(sendJson, response, 400, error.message || "Unable to save quiz result");
   }
-
-  if (!Number.isFinite(score) || !Number.isFinite(totalQuestions) || !Number.isFinite(rate)) {
-    sendApiError(sendJson, response, 400, "Score, totalQuestions, and rate are required");
-    return;
-  }
-
-  if (score < 0 || totalQuestions < 1 || score > totalQuestions || rate < 0 || rate > 100) {
-    sendApiError(sendJson, response, 400, "Invalid quiz result values");
-    return;
-  }
-
-  await connectDatabase();
-
-  const result = await QuizResult.create({
-    matricule,
-    score,
-    totalQuestions,
-    rate,
-    passed: Boolean(body.passed),
-    client: cleanString(body.client, "stellantis"),
-    language: cleanString(body.language, "fr"),
-    createdAt: new Date()
-  });
-
-  sendJson(response, 201, {
-    result: serializeQuizResult(result)
-  });
 }
 
-async function listQuizResults(request, response, deps) {
+async function listResults(request, response, deps) {
   const { requireAdmin, sendJson } = deps;
 
   if (!requireAdmin(request, response)) {
     return;
   }
 
-  await connectDatabase();
-  const results = await QuizResult.find().sort({ createdAt: -1 }).limit(500).lean();
+  const results = await listQuizResults();
+  sendJson(response, 200, { results });
+}
 
-  sendJson(response, 200, {
-    results: results.map(serializeQuizResult)
+async function downloadResults(request, response, deps) {
+  const { requireAdmin } = deps;
+
+  if (!requireAdmin(request, response)) {
+    return;
+  }
+
+  const filePath = await ensureQuizResultsFile();
+  const fileName = path.basename(filePath);
+
+  response.writeHead(200, {
+    "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "Content-Disposition": `attachment; filename="${fileName}"`,
+    "Cache-Control": "no-store"
   });
+  fs.createReadStream(filePath).pipe(response);
+}
+
+async function deleteResult(request, response, deps, index) {
+  const { requireAdmin, sendJson } = deps;
+
+  if (!requireAdmin(request, response)) {
+    return;
+  }
+
+  const deleted = await deleteQuizResult(index);
+
+  if (!deleted) {
+    sendApiError(sendJson, response, 404, "Quiz result not found");
+    return;
+  }
+
+  sendJson(response, 200, { ok: true });
 }
 
 async function handleQuizResultsApi(request, response, url, deps) {
@@ -100,7 +88,18 @@ async function handleQuizResultsApi(request, response, url, deps) {
     }
 
     if (url.pathname === "/api/quiz-results" && request.method === "GET") {
-      await listQuizResults(request, response, deps);
+      await listResults(request, response, deps);
+      return true;
+    }
+
+    if (url.pathname === "/api/quiz-results/download" && request.method === "GET") {
+      await downloadResults(request, response, deps);
+      return true;
+    }
+
+    const deleteMatch = url.pathname.match(/^\/api\/quiz-results\/(\d+)$/);
+    if (deleteMatch && request.method === "DELETE") {
+      await deleteResult(request, response, deps, deleteMatch[1]);
       return true;
     }
 

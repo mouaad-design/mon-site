@@ -1,20 +1,24 @@
-const { connectDatabase } = require("../config/database");
-const Complaint = require("../models/Complaint");
+const crypto = require("crypto");
+const { readJsonFile, writeJsonFile } = require("../services/fileStore");
 const { uploadComplaintImages, cleanupUploadedImages, deleteImagesByUrl } = require("../services/cloudinaryImages");
 
-const VALID_TYPES = new Set(Complaint.VALID_TYPES);
-const VALID_STATUSES = new Set(Complaint.VALID_STATUSES);
-const VALID_PRIORITIES = new Set(Complaint.VALID_PRIORITIES);
-const OBJECT_ID_PATTERN = "[a-f0-9]{24}";
+const VALID_TYPES = new Set(["message", "recommendation", "complaint"]);
+const VALID_STATUSES = new Set(["pending", "in_progress", "resolved"]);
+const VALID_PRIORITIES = new Set(["formal", "informal"]);
+const COMPLAINTS_FILE = "complaints.json";
 
 function cleanString(value, fallback = "") {
   const cleaned = String(value || "").trim();
   return cleaned || fallback;
 }
 
+function createId() {
+  return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function serializeComplaint(complaint) {
   return {
-    id: complaint._id.toString(),
+    id: complaint.id,
     name: complaint.name,
     type: complaint.type,
     subject: complaint.subject,
@@ -30,22 +34,29 @@ function serializeComplaint(complaint) {
   };
 }
 
-function getRouteMatch(pathname, pattern) {
-  return pathname.match(new RegExp(pattern, "i"));
-}
-
 function sendApiError(sendJson, response, statusCode, message) {
   sendJson(response, statusCode, {
     error: message
   });
 }
 
+async function readComplaints() {
+  const complaints = await readJsonFile(COMPLAINTS_FILE, []);
+  return Array.isArray(complaints) ? complaints : [];
+}
+
+async function writeComplaints(complaints) {
+  await writeJsonFile(COMPLAINTS_FILE, complaints);
+}
+
 async function listComplaints(response, sendJson) {
-  await connectDatabase();
-  const complaints = await Complaint.find().sort({ createdAt: -1 }).lean();
+  const complaints = await readComplaints();
+  const sortedComplaints = [...complaints].sort((first, second) => {
+    return new Date(second.createdAt || 0) - new Date(first.createdAt || 0);
+  });
 
   sendJson(response, 200, {
-    complaints: complaints.map(serializeComplaint)
+    complaints: sortedComplaints.map(serializeComplaint)
   });
 }
 
@@ -84,10 +95,10 @@ async function createComplaint(request, response, deps) {
   let uploadedImages = [];
 
   try {
-    await connectDatabase();
     uploadedImages = await uploadComplaintImages(body.images || body.attachments || []);
-
-    const complaint = await Complaint.create({
+    const complaints = await readComplaints();
+    const complaint = {
+      id: createId(),
       name,
       type,
       subject,
@@ -99,8 +110,11 @@ async function createComplaint(request, response, deps) {
       lineValue: cleanString(body.lineValue),
       priority,
       senderPhone: cleanString(body.senderPhone),
-      createdAt: new Date()
-    });
+      createdAt: new Date().toISOString()
+    };
+
+    complaints.push(complaint);
+    await writeComplaints(complaints);
 
     sendJson(response, 201, {
       complaint: serializeComplaint(complaint)
@@ -121,8 +135,8 @@ async function deleteComplaint(request, response, deps, complaintId) {
     return;
   }
 
-  await connectDatabase();
-  const complaint = await Complaint.findById(complaintId).lean();
+  const complaints = await readComplaints();
+  const complaint = complaints.find((item) => item.id === complaintId);
 
   if (!complaint) {
     sendApiError(sendJson, response, 404, "Complaint not found");
@@ -133,7 +147,7 @@ async function deleteComplaint(request, response, deps, complaintId) {
     await deleteImagesByUrl(complaint.imageUrls);
   }
 
-  await Complaint.findByIdAndDelete(complaintId);
+  await writeComplaints(complaints.filter((item) => item.id !== complaintId));
 
   sendJson(response, 200, {
     ok: true
@@ -163,23 +177,22 @@ async function updateComplaintStatus(request, response, deps, complaintId) {
     return;
   }
 
-  await connectDatabase();
-  const complaint = await Complaint.findByIdAndUpdate(
-    complaintId,
-    { status },
-    {
-      new: true,
-      runValidators: true
-    }
-  ).lean();
+  const complaints = await readComplaints();
+  const index = complaints.findIndex((item) => item.id === complaintId);
 
-  if (!complaint) {
+  if (index === -1) {
     sendApiError(sendJson, response, 404, "Complaint not found");
     return;
   }
 
+  complaints[index] = {
+    ...complaints[index],
+    status
+  };
+  await writeComplaints(complaints);
+
   sendJson(response, 200, {
-    complaint: serializeComplaint(complaint)
+    complaint: serializeComplaint(complaints[index])
   });
 }
 
@@ -197,15 +210,15 @@ async function handleComplaintsApi(request, response, url, deps) {
       return true;
     }
 
-    const deleteMatch = getRouteMatch(url.pathname, `^/api/complaints/(${OBJECT_ID_PATTERN})$`);
+    const deleteMatch = url.pathname.match(/^\/api\/complaints\/([^/]+)$/);
     if (deleteMatch && request.method === "DELETE") {
-      await deleteComplaint(request, response, deps, deleteMatch[1]);
+      await deleteComplaint(request, response, deps, decodeURIComponent(deleteMatch[1]));
       return true;
     }
 
-    const statusMatch = getRouteMatch(url.pathname, `^/api/complaints/(${OBJECT_ID_PATTERN})/status$`);
+    const statusMatch = url.pathname.match(/^\/api\/complaints\/([^/]+)\/status$/);
     if (statusMatch && request.method === "PATCH") {
-      await updateComplaintStatus(request, response, deps, statusMatch[1]);
+      await updateComplaintStatus(request, response, deps, decodeURIComponent(statusMatch[1]));
       return true;
     }
 

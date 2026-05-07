@@ -1,28 +1,30 @@
 require("dotenv").config({ path: "./.env" });
 const http = require("http");
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const { cloudinary, assertCloudinaryConfigured } = require("./config/cloudinary");
-const { connectDatabase } = require("./config/database");
 const { handleComplaintsApi } = require("./api/complaints");
 const { handleQuizResultsApi } = require("./api/quizResults");
-const DashboardMedia = require("./models/DashboardMedia");
+const { readJsonFile, writeJsonFile } = require("./services/fileStore");
+const { ensureQuizResultsFile } = require("./services/quizExcelStore");
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
 const DOCUMENTS_DIR = path.join(ROOT_DIR, "documents");
 const MANIFEST_PATH = path.join(DOCUMENTS_DIR, "document-manifest.json");
-const ADMIN_PASSWORD = "Quality0Defects";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Quality0Defects";
 const ADMIN_COOKIE_NAME = "sc_training_admin";
-const ADMIN_COOKIE_VALUE = "active";
 const ADMIN_SESSION_SECONDS = 8 * 60 * 60;
+const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || ADMIN_PASSWORD;
 const MAX_REQUEST_BODY_BYTES = 150 * 1024 * 1024;
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const AUTO_MIGRATE_DOCUMENTS = process.env.AUTO_MIGRATE_DOCUMENTS !== "false";
 const TEMP_UPLOAD_DIR = path.join(ROOT_DIR, "temp");
+const DASHBOARD_MEDIA_FILE = "dashboard-media.json";
 
 fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
 
@@ -119,9 +121,37 @@ function readCookies(request) {
   }, {});
 }
 
+function signAdminCookiePayload(payload) {
+  return crypto
+    .createHmac("sha256", ADMIN_SESSION_SECRET)
+    .update(payload)
+    .digest("base64url");
+}
+
+function createAdminCookieValue() {
+  const expiresAt = Date.now() + ADMIN_SESSION_SECONDS * 1000;
+  const payload = String(expiresAt);
+  return `${payload}.${signAdminCookiePayload(payload)}`;
+}
+
+function isValidAdminCookieValue(cookieValue = "") {
+  const [payload, signature] = String(cookieValue).split(".");
+  const expiresAt = Number(payload);
+
+  if (!payload || !signature || !expiresAt || Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
+    return false;
+  }
+
+  const expectedSignature = signAdminCookiePayload(payload);
+  const signatureBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+
+  return signatureBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+}
+
 function isAdminRequest(request) {
   const cookies = readCookies(request);
-  return cookies[ADMIN_COOKIE_NAME] === ADMIN_COOKIE_VALUE;
+  return isValidAdminCookieValue(cookies[ADMIN_COOKIE_NAME]);
 }
 
 function requireAdmin(request, response) {
@@ -134,7 +164,7 @@ function requireAdmin(request, response) {
 }
 
 function setAdminCookie(response) {
-  response.setHeader("Set-Cookie", `${ADMIN_COOKIE_NAME}=${ADMIN_COOKIE_VALUE}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${ADMIN_SESSION_SECONDS}`);
+  response.setHeader("Set-Cookie", `${ADMIN_COOKIE_NAME}=${encodeURIComponent(createAdminCookieValue())}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${ADMIN_SESSION_SECONDS}`);
 }
 
 function readRequestBody(request) {
@@ -652,7 +682,7 @@ function isSensitiveStaticPath(requestedPath = "") {
   const blockedPrefixes = [
     "/api/",
     "/config/",
-    "/models/",
+    "/data/",
     "/services/",
     "/node_modules/"
   ];
@@ -728,7 +758,7 @@ function runSingleFileUpload(request, response) {
 
 function serializeDashboardMedia(media) {
   return {
-    id: media._id.toString(),
+    id: media.id,
     url: media.url,
     secure_url: media.url,
     publicId: media.publicId,
@@ -774,16 +804,21 @@ async function handleUpload(request, response) {
 
     const result = await uploadToCloudinary(tempPath);
     uploadedResult = result;
-    await connectDatabase();
-
-    const media = await DashboardMedia.create({
+    const mediaItems = await readJsonFile(DASHBOARD_MEDIA_FILE, []);
+    const media = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       url: result.secure_url,
       publicId: result.public_id,
       resourceType: result.resource_type === "video" ? "video" : "image",
       mimeType,
       originalName: request.file.originalname || "dashboard-media",
-      size: request.file.size
-    });
+      size: request.file.size,
+      createdAt: new Date().toISOString()
+    };
+
+    const nextMediaItems = Array.isArray(mediaItems) ? mediaItems : [];
+    nextMediaItems.push(media);
+    await writeJsonFile(DASHBOARD_MEDIA_FILE, nextMediaItems);
 
     sendJson(response, 200, {
       success: true,
@@ -810,11 +845,13 @@ async function handleUpload(request, response) {
 
 async function listDashboardMedia(request, response) {
   try {
-    await connectDatabase();
-    const mediaItems = await DashboardMedia.find().sort({ createdAt: -1 }).lean();
+    const mediaItems = await readJsonFile(DASHBOARD_MEDIA_FILE, []);
+    const sortedMediaItems = (Array.isArray(mediaItems) ? mediaItems : []).sort((first, second) => {
+      return new Date(second.createdAt || 0) - new Date(first.createdAt || 0);
+    });
 
     sendJson(response, 200, {
-      media: mediaItems.map(serializeDashboardMedia)
+      media: sortedMediaItems.map(serializeDashboardMedia)
     });
   } catch (error) {
     sendJson(response, 500, { error: "Unable to load dashboard media" });
@@ -827,8 +864,9 @@ async function deleteDashboardMedia(request, response, mediaId) {
       return;
     }
 
-    await connectDatabase();
-    const media = await DashboardMedia.findById(mediaId).lean();
+    const mediaItems = await readJsonFile(DASHBOARD_MEDIA_FILE, []);
+    const safeMediaItems = Array.isArray(mediaItems) ? mediaItems : [];
+    const media = safeMediaItems.find((item) => item.id === mediaId);
 
     if (!media) {
       sendJson(response, 404, { error: "Media not found" });
@@ -836,7 +874,7 @@ async function deleteDashboardMedia(request, response, mediaId) {
     }
 
     await destroyCloudinaryMedia(media.publicId, media.resourceType === "video" ? "video" : "image");
-    await DashboardMedia.findByIdAndDelete(mediaId);
+    await writeJsonFile(DASHBOARD_MEDIA_FILE, safeMediaItems.filter((item) => item.id !== mediaId));
 
     sendJson(response, 200, { ok: true });
   } catch (error) {
@@ -906,7 +944,7 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  const dashboardMediaDeleteMatch = url.pathname.match(/^\/api\/dashboard-media\/([a-f0-9]{24})$/i);
+  const dashboardMediaDeleteMatch = url.pathname.match(/^\/api\/dashboard-media\/([^/]+)$/i);
   if (dashboardMediaDeleteMatch && request.method === "DELETE") {
     await deleteDashboardMedia(request, response, dashboardMediaDeleteMatch[1]);
     return;
@@ -923,11 +961,11 @@ const server = http.createServer(async (request, response) => {
 server.listen(PORT, () => {
   console.log(`SC Training running on http://localhost:${PORT}`);
   autoMigrateLocalDocuments();
-  connectDatabase()
-    .then(() => {
-      console.log("MongoDB connected");
+  ensureQuizResultsFile()
+    .then((filePath) => {
+      console.log(`Quiz results Excel ready: ${path.relative(ROOT_DIR, filePath)}`);
     })
     .catch((error) => {
-      console.error(`MongoDB connection failed: ${error.message}`);
+      console.error(`Quiz results Excel unavailable: ${error.message}`);
     });
 });

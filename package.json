@@ -1,12 +1,12 @@
 {
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check api/complaints.js && node --check api/quizResults.js && node --check config/database.js && node --check config/cloudinary.js && node --check models/Complaint.js && node --check models/QuizResult.js && node --check models/DashboardMedia.js && node --check services/cloudinaryImages.js"
+    "check": "node --check server.js && node --check api/complaints.js && node --check api/quizResults.js && node --check config/cloudinary.js && node --check services/cloudinaryImages.js && node --check services/fileStore.js && node --check services/quizExcelStore.js"
   },
   "dependencies": {
     "cloudinary": "^2.10.0",
     "dotenv": "^16.6.1",
-    "mongoose": "^8.23.1",
+    "exceljs": "^4.4.0",
     "multer": "^2.1.1"
   }
 }
