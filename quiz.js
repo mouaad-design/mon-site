@@ -7,6 +7,7 @@ const QUIZ_BANK_STORAGE_KEY = "sc-training-quiz-bank";
 const QUIZ_VISITOR_MATRICULE_KEY = "sc-training-quiz-visitor-matricule";
 const QUIZ_CLIENT = "stellantis";
 const SESSION_SIZE = 20;
+const PASSING_SCORE = 18;
 const VISITOR_ACCESS_DURATION_MS = 30 * 60 * 1000;
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 
@@ -2020,7 +2021,7 @@ async function showResult() {
   }, 0);
   const rate = Math.round((score / activeQuestions.length) * 100);
   const copy = quizUi[currentLang];
-  const performanceKey = score >= 9 ? "pass" : "fail";
+  const performanceKey = score >= PASSING_SCORE ? "pass" : "fail";
   const passed = performanceKey === "pass";
 
   elements.runPanel.classList.add("hidden");
