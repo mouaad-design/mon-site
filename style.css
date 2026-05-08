@@ -708,6 +708,15 @@ main {
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
 }
 
+.welcome-logo {
+  display: block;
+  width: min(100%, 360px);
+  height: auto;
+  margin: 0 auto;
+  border-radius: 16px;
+  object-fit: contain;
+}
+
 .login-card {
   width: min(100%, 532px);
   padding: 16px 22px 14px;
@@ -2992,7 +3001,7 @@ body.is-support-photo-lightbox-open {
 
 .client-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
   margin-top: 28px;
 }
@@ -3054,6 +3063,15 @@ body.is-support-photo-lightbox-open {
   object-fit: cover;
   object-position: center center;
   display: block;
+}
+
+.client-card__logo--complaints {
+  background: #101923;
+}
+
+.client-card__logo--complaints img {
+  object-fit: cover;
+  background: #101923;
 }
 
 .client-card__title {

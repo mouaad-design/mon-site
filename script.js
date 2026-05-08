@@ -27,6 +27,7 @@ const translatableNodes = document.querySelectorAll("[data-i18n]");
 const placeholderNodes = document.querySelectorAll("[data-i18n-placeholder]");
 const revealNodes = document.querySelectorAll(".reveal-section");
 const clientCardNodes = document.querySelectorAll("[data-client]");
+const weeklyComplaintsActionNode = document.querySelector("[data-weekly-complaints-action]");
 const clientNameNodes = document.querySelectorAll("[data-client-name]");
 const clientLogoNodes = document.querySelectorAll("[data-client-logo]");
 const documentActionNodes = document.querySelectorAll("[data-doc-action]");
@@ -132,6 +133,7 @@ let documentActionStatusKey = "";
 let documentActionStatusState = "info";
 const documentServerDocuments = new Map();
 const documentDeletedPaths = new Set();
+let documentDeletedDocuments = [];
 
 const documentLibraries = {
   stellantis: {
@@ -373,6 +375,31 @@ function getDocumentIdentityKeys(documentItem = {}) {
         .filter(Boolean)
     )
   );
+}
+
+function documentSharesIdentity(firstDocument = {}, secondDocument = {}) {
+  const firstKeys = new Set(getDocumentIdentityKeys(firstDocument));
+  return getDocumentIdentityKeys(secondDocument).some((identityKey) => firstKeys.has(identityKey));
+}
+
+function isDocumentDeleted(documentItem = {}, client = "stellantis", section = "quality") {
+  const documentPaths = [
+    documentItem.path,
+    ...(Array.isArray(documentItem.sourcePaths) ? documentItem.sourcePaths : []),
+    ...(Array.isArray(documentItem.gallery) ? documentItem.gallery : [])
+  ].filter(Boolean);
+
+  if (documentPaths.some((documentPath) => documentDeletedPaths.has(documentPath))) {
+    return true;
+  }
+
+  const normalizedSection = normalizeDocumentSection(section);
+  return documentDeletedDocuments.some((deletedDocument) => {
+    const sameLibrary =
+      (deletedDocument.client || "stellantis") === (client || "stellantis") &&
+      normalizeDocumentSection(deletedDocument.section || "quality") === normalizedSection;
+    return sameLibrary && documentSharesIdentity(deletedDocument, documentItem);
+  });
 }
 
 function getDocumentCollectionKey(client, section = "quality") {
@@ -815,6 +842,19 @@ function openSupportCenter(client = "") {
   window.location.href = `./support-center.html?${params.toString()}`;
 }
 
+function getCurrentIsoWeekKey() {
+  return getEntryWeekKey({ createdAt: new Date().toISOString() });
+}
+
+function openWeeklyComplaints() {
+  localStorage.setItem(CLIENT_STORAGE_KEY, "stellantis");
+  const params = new URLSearchParams();
+  params.set("client", "stellantis");
+  params.set("view", "weekly-complaints");
+  params.set("week", getCurrentIsoWeekKey());
+  window.location.href = `./support-center.html?${params.toString()}`;
+}
+
 function openDocumentViewer(documentPath = "", client = "", section = "quality") {
   documentSelectionOverride = "";
   const params = new URLSearchParams();
@@ -1142,12 +1182,22 @@ function doesEntryMatchScheduleFilter(entry, dateFilter = "", weekFilter = "") {
   return matchesDate && matchesWeek;
 }
 
+function getSupportUrlParams() {
+  return new URLSearchParams(window.location.search);
+}
+
+function isWeeklyComplaintsView() {
+  return getSupportUrlParams().get("view") === "weekly-complaints";
+}
+
 function getSupportCenterConfig() {
-  const params = new URLSearchParams(window.location.search);
+  const params = getSupportUrlParams();
   const client = params.get("client") || getStoredClient();
-  const lineValue = getCurrentSupportLineValue();
+  const weeklyComplaintsView = isWeeklyComplaintsView();
+  const lineValue = weeklyComplaintsView ? "" : getCurrentSupportLineValue();
   const dateFilter = (supportDateInputNode && supportDateInputNode.value) || "";
   const weekFilter =
+    params.get("week") ||
     (supportWeekFilterNode && supportWeekFilterNode.value) ||
     (supportWeekInputNode && supportWeekInputNode.value) ||
     "";
@@ -1155,6 +1205,7 @@ function getSupportCenterConfig() {
     .filter((entry) => {
       return (
         entry.client === client &&
+        (!weeklyComplaintsView || entry.type === "complaint") &&
         doesEntryMatchSupportLine(entry, lineValue) &&
         doesEntryMatchScheduleFilter(entry, dateFilter, weekFilter)
       );
@@ -1166,6 +1217,7 @@ function getSupportCenterConfig() {
   return {
     client,
     lineValue,
+    weeklyComplaintsView,
     entries
   };
 }
@@ -1725,8 +1777,9 @@ function updateSupportLineGate(lang) {
     return;
   }
 
+  const weeklyComplaintsView = isWeeklyComplaintsView();
   selectedSupportLine = supportLineSelectNode.value || "";
-  const hasSelectedLine = Boolean(selectedSupportLine);
+  const hasSelectedLine = Boolean(selectedSupportLine) || weeklyComplaintsView;
 
   if (supportLineInputNode) {
     supportLineInputNode.value = selectedSupportLine;
@@ -1740,7 +1793,9 @@ function updateSupportLineGate(lang) {
   supportContentNode.setAttribute("aria-hidden", hasSelectedLine ? "false" : "true");
 
   if (supportLineStatusNode) {
-    supportLineStatusNode.textContent = hasSelectedLine
+    supportLineStatusNode.textContent = weeklyComplaintsView
+      ? getText(lang, "supportWeeklyComplaintsHelper")
+      : hasSelectedLine
       ? `${getText(lang, "supportLineSelectedText")}: ${getSelectedSupportLineLabel()}`
       : getText(lang, "supportLineHelper");
   }
@@ -1982,6 +2037,17 @@ function updateSupportCenter(lang) {
 
   if (supportWeekFilterNode) {
     supportWeekFilterNode.min = SUPPORT_MIN_WEEK;
+    const requestedWeek = getSupportUrlParams().get("week");
+    if (requestedWeek && !supportWeekFilterNode.value) {
+      supportWeekFilterNode.value = requestedWeek;
+    }
+  }
+
+  if (supportWeekInputNode) {
+    const requestedWeek = getSupportUrlParams().get("week");
+    if (requestedWeek && !supportWeekInputNode.value) {
+      supportWeekInputNode.value = requestedWeek;
+    }
   }
 
   if (supportScheduleHintNode) {
@@ -2177,10 +2243,12 @@ function getClientDocuments(client, section = "quality") {
   }
 
   availableBaseDocuments
-    .filter((documentItem) => !documentDeletedPaths.has(documentItem.path))
+    .filter((documentItem) => !isDocumentDeleted(documentItem, client, normalizedSection))
     .forEach(upsertDocument);
 
-  serverDocuments.forEach(upsertDocument);
+  serverDocuments
+    .filter((documentItem) => !isDocumentDeleted(documentItem, client, normalizedSection))
+    .forEach(upsertDocument);
 
   return Array.from(documentsByName.values()).sort(compareDocumentTitles);
 }
@@ -2194,7 +2262,8 @@ async function loadServerDocuments(client, section = "quality") {
 
   try {
     const response = await fetch(`./api/documents?client=${encodeURIComponent(client)}&section=${encodeURIComponent(normalizedSection)}`, {
-      credentials: "same-origin"
+      credentials: "same-origin",
+      cache: "no-store"
     });
 
     if (!response.ok) {
@@ -2210,6 +2279,7 @@ async function loadServerDocuments(client, section = "quality") {
     (payload.deletedPaths || []).forEach((deletedPath) => {
       documentDeletedPaths.add(deletedPath);
     });
+    documentDeletedDocuments = Array.isArray(payload.deletedDocuments) ? payload.deletedDocuments : [];
   } catch {
     // Keep base library visible when the Node API is unavailable.
   }
@@ -3116,6 +3186,12 @@ function setupLocationGate() {
       openDashboard();
     });
   });
+
+  if (weeklyComplaintsActionNode) {
+    weeklyComplaintsActionNode.addEventListener("click", () => {
+      openWeeklyComplaints();
+    });
+  }
 
   documentActionNodes.forEach((button) => {
     button.addEventListener("click", () => {

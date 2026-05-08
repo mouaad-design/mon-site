@@ -15,15 +15,17 @@ async function ensureDataDir() {
 function normalizeDocumentState(value = {}) {
   const documents = Array.isArray(value.documents) ? value.documents : [];
   const deletedPaths = Array.isArray(value.deletedPaths) ? value.deletedPaths : [];
+  const deletedDocuments = Array.isArray(value.deletedDocuments) ? value.deletedDocuments : [];
 
   return {
     documents,
-    deletedPaths: Array.from(new Set(deletedPaths.filter(Boolean)))
+    deletedPaths: Array.from(new Set(deletedPaths.filter(Boolean))),
+    deletedDocuments
   };
 }
 
 function hasDocumentStateContent(state = {}) {
-  return Boolean((state.documents || []).length || (state.deletedPaths || []).length);
+  return Boolean((state.documents || []).length || (state.deletedPaths || []).length || (state.deletedDocuments || []).length);
 }
 
 function downloadText(url) {
@@ -54,20 +56,32 @@ async function readLocalDocumentStore() {
 }
 
 async function restoreDocumentStoreFromCloudinary() {
+  const candidatePublicIds = [
+    DOCUMENT_STORE_CLOUDINARY_PUBLIC_ID,
+    `${DOCUMENT_STORE_CLOUDINARY_PUBLIC_ID}.json`
+  ];
+
   try {
     assertCloudinaryConfigured();
-    const resource = await cloudinary.api.resource(DOCUMENT_STORE_CLOUDINARY_PUBLIC_ID, {
-      resource_type: "raw"
-    });
 
-    if (!resource || !resource.secure_url) {
-      return null;
+    for (const publicId of candidatePublicIds) {
+      try {
+        const resource = await cloudinary.api.resource(publicId, {
+          resource_type: "raw"
+        });
+
+        if (resource && resource.secure_url) {
+          return normalizeDocumentState(JSON.parse(await downloadText(resource.secure_url)));
+        }
+      } catch {
+        // Try the next possible raw public id.
+      }
     }
-
-    return normalizeDocumentState(JSON.parse(await downloadText(resource.secure_url)));
   } catch {
     return null;
   }
+
+  return null;
 }
 
 async function syncDocumentStoreToCloudinary() {

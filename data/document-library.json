@@ -216,5 +216,6 @@
       "cloudinaryResourceType": "image"
     }
   ],
-  "deletedPaths": []
+  "deletedPaths": [],
+  "deletedDocuments": []
 }

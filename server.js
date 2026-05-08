@@ -118,7 +118,12 @@ function dedupeManifestDocuments(manifest) {
 }
 
 function sendJson(response, statusCode, payload) {
-  response.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0"
+  });
   response.end(JSON.stringify(payload));
 }
 
@@ -290,6 +295,34 @@ function documentHasDeletedPath(documentItem = {}, deletedPaths = []) {
   ].filter(Boolean);
 
   return documentPaths.some((documentPath) => deletedPathSet.has(documentPath));
+}
+
+function documentIsDeleted(documentItem = {}, manifest = {}) {
+  if (documentHasDeletedPath(documentItem, manifest.deletedPaths || [])) {
+    return true;
+  }
+
+  return (manifest.deletedDocuments || []).some((deletedDocument) => {
+    const sameLibrary =
+      (deletedDocument.client || "stellantis") === (documentItem.client || "stellantis") &&
+      (deletedDocument.section || "quality") === (documentItem.section || "quality");
+    return sameLibrary && documentSharesIdentity(deletedDocument, documentItem);
+  });
+}
+
+function createDeletedDocumentRecord(documentItem = {}, fallback = {}) {
+  return {
+    id: documentItem.id || fallback.id || "",
+    title: documentItem.title || fallback.title || "",
+    path: documentItem.path || fallback.path || "",
+    client: documentItem.client || fallback.client || "stellantis",
+    section: documentItem.section || fallback.section || "quality",
+    sourcePaths: Array.from(new Set([
+      ...((documentItem.sourcePaths || [])),
+      ...((fallback.sourcePaths || []))
+    ].filter(Boolean))),
+    deletedAt: new Date().toISOString()
+  };
 }
 
 function resolveProjectPath(projectPath) {
@@ -467,17 +500,16 @@ async function getClientDocuments(url) {
   const client = safeSegment(url.searchParams.get("client"), "stellantis");
   const section = safeSegment(url.searchParams.get("section"), "quality");
   const manifest = dedupeManifestDocuments(await readDocumentStore());
-  const deletedPaths = manifest.deletedPaths || [];
   const manifestDocuments = manifest.documents.filter(
     (documentItem) =>
       documentItem.client === client &&
       documentItem.section === section &&
-      !documentHasDeletedPath(documentItem, deletedPaths)
+      !documentIsDeleted(documentItem, manifest)
   );
   const persistedDocuments = (await readMedia())
     .filter((mediaItem) => mediaItem.kind === "document" && mediaItem.client === client && mediaItem.section === section)
     .map((mediaItem) => mediaToDocument(mediaItem))
-    .filter((documentItem) => !documentHasDeletedPath(documentItem, deletedPaths));
+    .filter((documentItem) => !documentIsDeleted(documentItem, manifest));
   const documentsByIdentity = new Map();
   const identityAliases = new Map();
 
@@ -498,7 +530,8 @@ async function getClientDocuments(url) {
 
   sendJsonResponse(url.response, 200, {
     documents: Array.from(documentsByIdentity.values()),
-    deletedPaths
+    deletedPaths: manifest.deletedPaths || [],
+    deletedDocuments: manifest.deletedDocuments || []
   });
 }
 
@@ -573,6 +606,10 @@ async function saveDocument(request, response) {
     });
     manifest.documents.push(newDocument);
     manifest.deletedPaths = (manifest.deletedPaths || []).filter((deletedPath) => deletedPath !== projectPath);
+    manifest.deletedDocuments = (manifest.deletedDocuments || []).filter((deletedDocument) => {
+      const sameLibrary = (deletedDocument.client || "stellantis") === client && (deletedDocument.section || "quality") === section;
+      return !sameLibrary || !documentSharesIdentity(deletedDocument, newDocument);
+    });
     await writeDocumentStore(manifest);
     writeManifest(manifest);
     await Promise.allSettled([
@@ -645,9 +682,15 @@ async function deleteDocument(request, response) {
       destroyDocumentCloudinaryMedia(matchingDocument || payload),
       ...removedMedia.map((mediaItem) => destroyCloudinaryMedia(mediaItem.public_id, mediaItem.resource_type || "image"))
     ]);
-    deletionPaths.forEach((projectPath) => {
-      deleteLocalDocumentFile(projectPath);
-    });
+    const staticSourcePaths = new Set([
+      ...(Array.isArray(payload.sourcePaths) ? payload.sourcePaths : []),
+      ...((matchingDocument && matchingDocument.sourcePaths) || [])
+    ]);
+    deletionPaths
+      .filter((projectPath) => !staticSourcePaths.has(projectPath))
+      .forEach((projectPath) => {
+        deleteLocalDocumentFile(projectPath);
+      });
 
     manifest.documents = manifest.documents.filter((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
@@ -660,10 +703,28 @@ async function deleteDocument(request, response) {
         ...deletionPaths.filter((itemPath) => !isRemoteUrl(itemPath))
       ])
     );
+    const deletedRecord = createDeletedDocumentRecord(matchingDocument || payload, {
+      ...deleteIdentity,
+      client,
+      section
+    });
+    manifest.deletedDocuments = [
+      ...(manifest.deletedDocuments || []).filter((deletedDocument) => {
+        const sameLibrary =
+          (deletedDocument.client || "stellantis") === client &&
+          (deletedDocument.section || "quality") === section;
+        return !sameLibrary || !documentSharesIdentity(deletedDocument, deletedRecord);
+      }),
+      deletedRecord
+    ];
     await writeDocumentStore(manifest);
     writeManifest(manifest);
 
-    sendJson(response, 200, { ok: true, deletedPaths: manifest.deletedPaths });
+    sendJson(response, 200, {
+      ok: true,
+      deletedPaths: manifest.deletedPaths,
+      deletedDocuments: manifest.deletedDocuments
+    });
   } catch (error) {
     sendJson(response, 400, { error: "Unable to delete document" });
   }
@@ -696,6 +757,12 @@ async function migrateLocalDocumentsToCloudinary() {
     const folder = `sc-training/documents/${definition.client}/${definition.section}`;
     const sourcePaths = definition.gallery || [definition.path];
     const uploadedItems = [];
+
+    if (documentIsDeleted({ ...definition, sourcePaths }, manifest)) {
+      skippedDocuments += 1;
+      continue;
+    }
+
     const existingMigratedDocument = manifest.documents.find((documentItem) => {
       const sameLibrary = documentItem.client === definition.client && documentItem.section === definition.section;
       return sameLibrary && documentIdentity(documentItem) === documentIdentity(definition) && documentItem.migratedToCloudinary && isRemoteUrl(documentItem.path);
