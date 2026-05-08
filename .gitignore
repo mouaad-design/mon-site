@@ -5,4 +5,5 @@ data/*
 !data/
 !data/media.json
 !data/complaints.json
+!data/document-library.json
 *.log

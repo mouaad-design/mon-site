@@ -8,6 +8,7 @@ const { cloudinary, assertCloudinaryConfigured } = require("./config/cloudinary"
 const { handleComplaintsApi } = require("./api/complaints");
 const { handleQuizResultsApi } = require("./api/quizResults");
 const { initComplaintStore } = require("./services/complaintStore");
+const { initDocumentStore, readDocumentStore, writeDocumentStore } = require("./services/documentStore");
 const { ensureQuizResultsFile } = require("./services/quizExcelStore");
 const {
   initMediaStore,
@@ -465,7 +466,7 @@ function getMigrationDocumentDefinitions() {
 async function getClientDocuments(url) {
   const client = safeSegment(url.searchParams.get("client"), "stellantis");
   const section = safeSegment(url.searchParams.get("section"), "quality");
-  const manifest = dedupeManifestDocuments(readManifest());
+  const manifest = dedupeManifestDocuments(await readDocumentStore());
   const deletedPaths = manifest.deletedPaths || [];
   const manifestDocuments = manifest.documents.filter(
     (documentItem) =>
@@ -560,7 +561,7 @@ async function saveDocument(request, response) {
       size: buffer.length,
       uploaded_at: new Date().toISOString()
     });
-    const manifest = dedupeManifestDocuments(readManifest());
+    const manifest = dedupeManifestDocuments(await readDocumentStore());
     const replacedDocuments = manifest.documents.filter((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
       return sameLibrary && documentSharesIdentity(documentItem, newDocument);
@@ -572,6 +573,7 @@ async function saveDocument(request, response) {
     });
     manifest.documents.push(newDocument);
     manifest.deletedPaths = (manifest.deletedPaths || []).filter((deletedPath) => deletedPath !== projectPath);
+    await writeDocumentStore(manifest);
     writeManifest(manifest);
     await Promise.allSettled([
       ...replacedDocuments.map((documentItem) => destroyDocumentCloudinaryMedia(documentItem)),
@@ -603,7 +605,7 @@ async function deleteDocument(request, response) {
     const section = safeSegment(payload.section, "quality");
     const documentPath = String(payload.path || "");
     const title = String(payload.title || path.basename(documentPath));
-    const manifest = dedupeManifestDocuments(readManifest());
+    const manifest = dedupeManifestDocuments(await readDocumentStore());
     const deleteIdentity = {
       id: payload.id || "",
       title,
@@ -658,6 +660,7 @@ async function deleteDocument(request, response) {
         ...deletionPaths.filter((itemPath) => !isRemoteUrl(itemPath))
       ])
     );
+    await writeDocumentStore(manifest);
     writeManifest(manifest);
 
     sendJson(response, 200, { ok: true, deletedPaths: manifest.deletedPaths });
@@ -685,7 +688,7 @@ async function migrateExistingDocumentsToCloudinary(request, response) {
 }
 
 async function migrateLocalDocumentsToCloudinary() {
-  const manifest = dedupeManifestDocuments(readManifest());
+  const manifest = dedupeManifestDocuments(await readDocumentStore());
   const migratedDocuments = [];
   let skippedDocuments = 0;
 
@@ -751,6 +754,7 @@ async function migrateLocalDocumentsToCloudinary() {
     migratedDocuments.push(migratedDocument);
   }
 
+  await writeDocumentStore(manifest);
   writeManifest(manifest);
   return {
     migrated: migratedDocuments.length,
@@ -775,7 +779,7 @@ async function autoMigrateLocalDocuments() {
 }
 
 async function syncManifestDocumentsToMediaStore() {
-  const manifest = dedupeManifestDocuments(readManifest());
+  const manifest = dedupeManifestDocuments(await readDocumentStore());
   const deletedPaths = manifest.deletedPaths || [];
   const cloudinaryDocuments = (manifest.documents || []).filter((documentItem) => {
     return documentItem.cloudinaryPublicId && isRemoteUrl(documentItem.path) && !documentHasDeletedPath(documentItem, deletedPaths);
@@ -1144,7 +1148,15 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(PORT, async () => {
   console.log(`SC Training running on http://localhost:${PORT}`);
-  await autoMigrateLocalDocuments();
+
+  try {
+    const documentStorePath = await initDocumentStore(dedupeManifestDocuments(readManifest()));
+    await autoMigrateLocalDocuments();
+    writeManifest(dedupeManifestDocuments(await readDocumentStore()));
+    console.log(`Document metadata ready: ${path.relative(ROOT_DIR, documentStorePath)}`);
+  } catch (error) {
+    console.error(`Document metadata unavailable: ${error.message}`);
+  }
 
   try {
     const mediaFilePath = await initMediaStore();
