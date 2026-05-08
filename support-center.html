@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=20260507-role-security">
+  <link rel="stylesheet" href="./style.css?v=20260508-support-priority">
 </head>
 <body class="dashboard-page support-page">
   <div class="hero-bg">
@@ -110,11 +110,6 @@
 
             <div class="support-types">
               <button type="button" class="support-type-card is-active" data-support-type-card data-support-type="message">
-                <span class="support-type-card__icon support-type-card__icon--message" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M5 7.5C5 6.4 5.9 5.5 7 5.5H17C18.1 5.5 19 6.4 19 7.5V13.5C19 14.6 18.1 15.5 17 15.5H10.2L6 18.5L6.7 15.5H7C5.9 15.5 5 14.6 5 13.5V7.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                  </svg>
-                </span>
                 <span class="support-type-card__title" data-i18n="supportTypeMessage">Communication</span>
                 <span class="support-type-card__text" data-i18n="supportTypeMessageText">Partager une information ou une communication simple.</span>
               </button>
@@ -141,7 +136,7 @@
             </div>
 
             <div class="support-form-grid support-form-grid--priority-subject">
-              <label class="support-field">
+              <label class="support-field" data-support-priority-field hidden>
                 <span data-i18n="supportFieldPriority">Priorite</span>
                 <select name="priority" data-support-priority-input>
                   <option value="formal" data-i18n="supportPriorityFormal">Formel</option>
@@ -201,14 +196,19 @@
             <p class="support-panel__kicker" data-i18n="supportHistoryKicker">Historique</p>
             <h2 data-i18n="supportHistoryTitle">Messages enregistres</h2>
           </div>
-          <div class="support-history__list" data-support-history></div>
+          <div class="support-history__list" data-support-history role="list"></div>
         </section>
       </div>
     </section>
   </main>
 
+  <div class="support-photo-lightbox" data-support-photo-lightbox hidden role="dialog" aria-modal="true" aria-label="Photo">
+    <button type="button" class="support-photo-lightbox__close" data-support-photo-lightbox-close aria-label="Fermer">×</button>
+    <img class="support-photo-lightbox__image" data-support-photo-lightbox-image src="" alt="">
+  </div>
+
   <script src="./translations.js?v=20260507-role-security"></script>
-  <script src="./script.js?v=20260507-role-security"></script>
+  <script src="./script.js?v=20260508-support-priority"></script>
 </body>
 </html>
 

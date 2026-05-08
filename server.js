@@ -92,18 +92,24 @@ function dedupeManifestDocuments(manifest) {
     deletedPaths: Array.from(new Set(manifest.deletedPaths || []))
   };
   const documentsByIdentity = new Map();
+  const identityAliases = new Map();
 
   (manifest.documents || []).forEach((documentItem) => {
-    const key = [
-      documentItem.client || "stellantis",
-      documentItem.section || "quality",
-      documentIdentity(documentItem)
-    ].join(":");
-    const existingDocument = documentsByIdentity.get(key);
+    const scope = `${documentItem.client || "stellantis"}:${documentItem.section || "quality"}`;
+    const identityKeys = documentIdentityKeys(documentItem).map((identityKey) => `${scope}:${identityKey}`);
+    const matchedKey = identityKeys.find((identityKey) => identityAliases.has(identityKey));
+    const primaryKey = matchedKey
+      ? identityAliases.get(matchedKey)
+      : identityKeys[0] || `${scope}:${documentItem.id || documentItem.path || documentItem.title}`;
+    const existingDocument = documentsByIdentity.get(primaryKey);
 
     if (!existingDocument || (documentItem.migratedToCloudinary && !existingDocument.migratedToCloudinary)) {
-      documentsByIdentity.set(key, documentItem);
+      documentsByIdentity.set(primaryKey, documentItem);
     }
+
+    identityKeys.forEach((identityKey) => {
+      identityAliases.set(identityKey, primaryKey);
+    });
   });
 
   nextManifest.documents = Array.from(documentsByIdentity.values());
@@ -249,8 +255,40 @@ function normalizeDocumentIdentity(value = "") {
 }
 
 function documentIdentity(documentItem) {
-  const title = documentItem.id || documentItem.title || path.basename(documentItem.path || "");
-  return normalizeDocumentIdentity(title);
+  return documentIdentityKeys(documentItem)[0] || "";
+}
+
+function documentIdentityKeys(documentItem = {}) {
+  const rawValues = [
+    documentItem.id,
+    documentItem.title,
+    path.basename(documentItem.path || ""),
+    ...((documentItem.sourcePaths || []).map((sourcePath) => path.basename(sourcePath || "")))
+  ];
+
+  return Array.from(
+    new Set(
+      rawValues
+        .map((value) => normalizeDocumentIdentity(value))
+        .filter(Boolean)
+    )
+  );
+}
+
+function documentSharesIdentity(firstDocument = {}, secondDocument = {}) {
+  const firstKeys = new Set(documentIdentityKeys(firstDocument));
+  return documentIdentityKeys(secondDocument).some((identityKey) => firstKeys.has(identityKey));
+}
+
+function documentHasDeletedPath(documentItem = {}, deletedPaths = []) {
+  const deletedPathSet = new Set(deletedPaths || []);
+  const documentPaths = [
+    documentItem.path,
+    ...((documentItem.sourcePaths || [])),
+    ...((documentItem.gallery || []))
+  ].filter(Boolean);
+
+  return documentPaths.some((documentPath) => deletedPathSet.has(documentPath));
 }
 
 function resolveProjectPath(projectPath) {
@@ -428,21 +466,38 @@ async function getClientDocuments(url) {
   const client = safeSegment(url.searchParams.get("client"), "stellantis");
   const section = safeSegment(url.searchParams.get("section"), "quality");
   const manifest = dedupeManifestDocuments(readManifest());
+  const deletedPaths = manifest.deletedPaths || [];
   const manifestDocuments = manifest.documents.filter(
-    (documentItem) => documentItem.client === client && documentItem.section === section
+    (documentItem) =>
+      documentItem.client === client &&
+      documentItem.section === section &&
+      !documentHasDeletedPath(documentItem, deletedPaths)
   );
   const persistedDocuments = (await readMedia())
     .filter((mediaItem) => mediaItem.kind === "document" && mediaItem.client === client && mediaItem.section === section)
-    .map((mediaItem) => mediaToDocument(mediaItem));
+    .map((mediaItem) => mediaToDocument(mediaItem))
+    .filter((documentItem) => !documentHasDeletedPath(documentItem, deletedPaths));
   const documentsByIdentity = new Map();
+  const identityAliases = new Map();
 
-  [...manifestDocuments, ...persistedDocuments].forEach((documentItem) => {
-    documentsByIdentity.set(documentIdentity(documentItem) || documentItem.id, documentItem);
-  });
+  function upsertDocument(documentItem) {
+    const identityKeys = documentIdentityKeys(documentItem);
+    const matchedKey = identityKeys.find((identityKey) => identityAliases.has(identityKey));
+    const primaryKey = matchedKey
+      ? identityAliases.get(matchedKey)
+      : identityKeys[0] || documentItem.id || documentItem.path || documentItem.title;
+
+    documentsByIdentity.set(primaryKey, documentItem);
+    identityKeys.forEach((identityKey) => {
+      identityAliases.set(identityKey, primaryKey);
+    });
+  }
+
+  [...persistedDocuments, ...manifestDocuments].forEach(upsertDocument);
 
   sendJsonResponse(url.response, 200, {
     documents: Array.from(documentsByIdentity.values()),
-    deletedPaths: manifest.deletedPaths || []
+    deletedPaths
   });
 }
 
@@ -505,16 +560,15 @@ async function saveDocument(request, response) {
       size: buffer.length,
       uploaded_at: new Date().toISOString()
     });
-    const identity = documentIdentity(newDocument);
     const manifest = dedupeManifestDocuments(readManifest());
     const replacedDocuments = manifest.documents.filter((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
-      return sameLibrary && documentIdentity(documentItem) === identity;
+      return sameLibrary && documentSharesIdentity(documentItem, newDocument);
     });
 
     manifest.documents = manifest.documents.filter((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
-      return !sameLibrary || documentIdentity(documentItem) !== identity;
+      return !sameLibrary || !documentSharesIdentity(documentItem, newDocument);
     });
     manifest.documents.push(newDocument);
     manifest.deletedPaths = (manifest.deletedPaths || []).filter((deletedPath) => deletedPath !== projectPath);
@@ -550,18 +604,28 @@ async function deleteDocument(request, response) {
     const documentPath = String(payload.path || "");
     const title = String(payload.title || path.basename(documentPath));
     const manifest = dedupeManifestDocuments(readManifest());
-    const identity = normalizeDocumentIdentity(title);
+    const deleteIdentity = {
+      id: payload.id || "",
+      title,
+      path: documentPath,
+      sourcePaths: Array.isArray(payload.sourcePaths) ? payload.sourcePaths : []
+    };
     const matchingDocument = manifest.documents.find((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
-      const sameDocument = documentItem.path === documentPath || documentIdentity(documentItem) === identity;
+      const sameDocument = documentItem.path === documentPath || documentSharesIdentity(documentItem, deleteIdentity);
       return sameLibrary && sameDocument;
     });
     const deletionPaths = Array.from(
       new Set([
         documentPath,
+        ...(Array.isArray(payload.sourcePaths) ? payload.sourcePaths : []),
         ...((matchingDocument && matchingDocument.sourcePaths) || []),
         ...((matchingDocument && matchingDocument.gallery) || []),
-        ...(Array.isArray(payload.gallery) ? payload.gallery : [])
+        ...(Array.isArray(payload.gallery) ? payload.gallery : []),
+        ...((matchingDocument && matchingDocument.cloudinaryGallery) || []).map((galleryItem) => galleryItem && galleryItem.url),
+        ...(Array.isArray(payload.cloudinaryGallery)
+          ? payload.cloudinaryGallery.map((galleryItem) => galleryItem && galleryItem.url)
+          : [])
       ].filter(Boolean))
     );
 
@@ -585,12 +649,15 @@ async function deleteDocument(request, response) {
 
     manifest.documents = manifest.documents.filter((documentItem) => {
       const sameLibrary = documentItem.client === client && documentItem.section === section;
-      const sameDocument = documentItem.path === documentPath || documentIdentity(documentItem) === identity;
+      const sameDocument = documentItem.path === documentPath || documentSharesIdentity(documentItem, deleteIdentity);
       return !(sameLibrary && sameDocument);
     });
-    manifest.deletedPaths = matchingDocument && !matchingDocument.sourcePaths
-      ? (manifest.deletedPaths || []).filter((deletedPath) => !deletionPaths.includes(deletedPath))
-      : Array.from(new Set([...(manifest.deletedPaths || []), ...deletionPaths.filter((itemPath) => !isRemoteUrl(itemPath))]));
+    manifest.deletedPaths = Array.from(
+      new Set([
+        ...(manifest.deletedPaths || []),
+        ...deletionPaths.filter((itemPath) => !isRemoteUrl(itemPath))
+      ])
+    );
     writeManifest(manifest);
 
     sendJson(response, 200, { ok: true, deletedPaths: manifest.deletedPaths });
@@ -709,8 +776,9 @@ async function autoMigrateLocalDocuments() {
 
 async function syncManifestDocumentsToMediaStore() {
   const manifest = dedupeManifestDocuments(readManifest());
+  const deletedPaths = manifest.deletedPaths || [];
   const cloudinaryDocuments = (manifest.documents || []).filter((documentItem) => {
-    return documentItem.cloudinaryPublicId && isRemoteUrl(documentItem.path);
+    return documentItem.cloudinaryPublicId && isRemoteUrl(documentItem.path) && !documentHasDeletedPath(documentItem, deletedPaths);
   });
 
   for (const documentItem of cloudinaryDocuments) {
@@ -726,6 +794,7 @@ async function syncManifestDocumentsToMediaStore() {
       resource_type: documentItem.cloudinaryResourceType || getResourceTypeFromDocument(documentItem),
       original_name: documentItem.title,
       uploaded_at: documentItem.createdAt || new Date().toISOString(),
+      sourcePaths: documentItem.sourcePaths || [],
       gallery: documentItem.gallery || [],
       cloudinaryGallery: documentItem.cloudinaryGallery || []
     });
@@ -841,7 +910,7 @@ function mediaToDocument(media) {
   const normalizedMedia = normalizeMedia(media, "document");
 
   return {
-    id: safeSegment(path.parse(normalizedMedia.originalName || normalizedMedia.title || "document").name, "document"),
+    id: normalizedMedia.id || safeSegment(path.parse(normalizedMedia.originalName || normalizedMedia.title || "document").name, "document"),
     title: normalizedMedia.title || normalizedMedia.originalName || "Document",
     path: normalizedMedia.secure_url,
     mediaType: normalizedMedia.file_type || normalizedMedia.mimeType || "",
@@ -850,6 +919,7 @@ function mediaToDocument(media) {
     isServerSaved: true,
     cloudinaryPublicId: normalizedMedia.public_id,
     cloudinaryResourceType: normalizedMedia.resource_type,
+    sourcePaths: normalizedMedia.sourcePaths || [],
     gallery: normalizedMedia.gallery || [],
     cloudinaryGallery: normalizedMedia.cloudinaryGallery || []
   };

@@ -2029,6 +2029,10 @@ body.rtl .document-viewer-doc-link {
   align-items: end;
 }
 
+.support-form-grid--priority-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .support-field {
   display: grid;
   gap: 8px;
@@ -2287,6 +2291,7 @@ body.rtl .document-viewer-doc-link {
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
 }
 
 .support-history-item::before {
@@ -2422,19 +2427,105 @@ body.rtl .document-viewer-doc-link {
 
 .support-history-item__gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px;
   margin-top: 14px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.support-history-item__media {
+  width: 100%;
+  max-width: 100%;
+  max-height: 300px;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.support-history-item__photo-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.support-history-item__photo-button:focus-visible {
+  outline: 3px solid rgba(31, 160, 143, 0.42);
+  outline-offset: 3px;
 }
 
 .support-history-item__gallery img {
   display: block;
   width: 100%;
+  height: clamp(180px, 24vw, 300px);
+  max-height: 300px;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  object-position: center center;
+  border-radius: 12px;
+  border: 0;
   background: rgba(255, 255, 255, 0.06);
+}
+
+.support-photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgba(7, 14, 24, 0.82);
+  backdrop-filter: blur(14px);
+}
+
+.support-photo-lightbox[hidden] {
+  display: none !important;
+}
+
+.support-photo-lightbox__image {
+  display: block;
+  width: auto;
+  max-width: min(100%, 1180px);
+  max-height: calc(100vh - 104px);
+  object-fit: contain;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
+}
+
+.support-photo-lightbox__close {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.support-photo-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+body.is-support-photo-lightbox-open {
+  overflow: hidden;
 }
 
 .support-page {
@@ -2643,6 +2734,12 @@ body.rtl .document-viewer-doc-link {
 .support-page .support-photo-card img,
 .support-page .support-history-item__gallery img {
   border-color: rgba(206, 216, 227, 0.92);
+}
+
+.support-page .support-history-item__media {
+  border-color: rgba(206, 216, 227, 0.92);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 12px 24px rgba(37, 56, 88, 0.08);
 }
 
 .support-page .support-photo-card__remove {
@@ -4111,13 +4208,53 @@ body.rtl .summary-card::before {
     max-height: min(70svh, calc(100svh - 170px));
   }
 
-  .support-photo-card img,
-  .support-history-item__gallery img {
+  .support-photo-card img {
     height: auto;
     aspect-ratio: auto;
     object-fit: contain;
     object-position: center center;
     background: rgba(255, 255, 255, 0.92);
+  }
+
+  .support-history-item__gallery {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+    gap: 10px;
+  }
+
+  .support-history-item__media {
+    max-height: 240px;
+    border-radius: 12px;
+  }
+
+  .support-history-item__gallery img {
+    height: min(54vw, 240px);
+    min-height: 150px;
+    max-height: 240px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    object-position: center center;
+    border-radius: 12px;
+  }
+
+  .support-history-item__gallery--count-1 img {
+    height: min(58vw, 260px);
+    max-height: 260px;
+  }
+
+  .support-photo-lightbox {
+    padding: 14px;
+  }
+
+  .support-photo-lightbox__image {
+    max-height: calc(100vh - 86px);
+    border-radius: 12px;
+  }
+
+  .support-photo-lightbox__close {
+    top: 12px;
+    right: 12px;
+    width: 42px;
+    height: 42px;
   }
 
   .document-viewer-pager {

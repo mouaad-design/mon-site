@@ -16,8 +16,11 @@
     "original_name": "CARACTÈRES SPÉCIAUX arabe",
     "originalName": "CARACTÈRES SPÉCIAUX arabe",
     "size": 0,
-    "uploaded_at": "2026-05-07T14:30:38.366Z",
-    "createdAt": "2026-05-07T14:30:38.366Z",
+    "uploaded_at": "2026-05-08T07:56:08.962Z",
+    "createdAt": "2026-05-08T07:56:08.962Z",
+    "sourcePaths": [
+      "./documents/stellantis/caracteres-speciaux-arabe.png"
+    ],
     "gallery": [],
     "cloudinaryGallery": []
   },
@@ -38,8 +41,11 @@
     "original_name": "Fichier CS operateur",
     "originalName": "Fichier CS operateur",
     "size": 0,
-    "uploaded_at": "2026-05-07T14:30:40.203Z",
-    "createdAt": "2026-05-07T14:30:40.203Z",
+    "uploaded_at": "2026-05-08T07:56:10.301Z",
+    "createdAt": "2026-05-08T07:56:10.301Z",
+    "sourcePaths": [
+      "./documents/stellantis/fichier-cs-operateur.png"
+    ],
     "gallery": [],
     "cloudinaryGallery": []
   },
@@ -60,8 +66,11 @@
     "original_name": "Mapping charge AR version 2",
     "originalName": "Mapping charge AR version 2",
     "size": 0,
-    "uploaded_at": "2026-05-07T14:30:41.430Z",
-    "createdAt": "2026-05-07T14:30:41.430Z",
+    "uploaded_at": "2026-05-08T07:56:11.244Z",
+    "createdAt": "2026-05-08T07:56:11.244Z",
+    "sourcePaths": [
+      "./documents/stellantis/mapping-charge-ar-version-2.PNG"
+    ],
     "gallery": [],
     "cloudinaryGallery": []
   },
@@ -82,8 +91,28 @@
     "original_name": "Présentation opérateur",
     "originalName": "Présentation opérateur",
     "size": 0,
-    "uploaded_at": "2026-05-07T14:30:42.322Z",
-    "createdAt": "2026-05-07T14:30:42.322Z",
+    "uploaded_at": "2026-05-08T07:56:12.207Z",
+    "createdAt": "2026-05-08T07:56:12.207Z",
+    "sourcePaths": [
+      "./documents/stellantis/presentation-operateur/Diapositive1.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive2.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive3.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive4.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive5.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive6.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive7.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive8.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive9.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive10.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive11.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive12.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive13.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive14.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive15.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive16.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive17.PNG",
+      "./documents/stellantis/presentation-operateur/Diapositive18.PNG"
+    ],
     "gallery": [
       "https://res.cloudinary.com/dystakpay/image/upload/v1778100403/sc-training/documents/stellantis/training/z38zbvfz0fb4eylpsmh9.png",
       "https://res.cloudinary.com/dystakpay/image/upload/v1778100408/sc-training/documents/stellantis/training/mrpjtj4qfkkwy2tbjq5y.png",
@@ -214,8 +243,11 @@
     "original_name": "CDPO Training Module",
     "originalName": "CDPO Training Module",
     "size": 0,
-    "uploaded_at": "2026-05-07T14:30:43.196Z",
-    "createdAt": "2026-05-07T14:30:43.196Z",
+    "uploaded_at": "2026-05-08T07:56:13.308Z",
+    "createdAt": "2026-05-08T07:56:13.308Z",
+    "sourcePaths": [
+      "./video/stellantis/CDPO _ Training Module..mp4"
+    ],
     "gallery": [],
     "cloudinaryGallery": []
   },
@@ -236,8 +268,9 @@
     "original_name": "Capture d'écran 2026-04-09 143742.png",
     "originalName": "Capture d'écran 2026-04-09 143742.png",
     "size": 0,
-    "uploaded_at": "2026-05-07T14:30:44.295Z",
-    "createdAt": "2026-05-07T14:30:44.295Z",
+    "uploaded_at": "2026-05-08T07:56:14.271Z",
+    "createdAt": "2026-05-08T07:56:14.271Z",
+    "sourcePaths": [],
     "gallery": [],
     "cloudinaryGallery": []
   }

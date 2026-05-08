@@ -38,6 +38,25 @@ function getMediaIdentity(media = {}) {
   return normalizeIdentity(media.title || media.originalName || media.original_name || media.secure_url || media.url);
 }
 
+function getMediaIdentityKeys(media = {}) {
+  const rawValues = [
+    media.id,
+    media.title,
+    media.originalName,
+    media.original_name,
+    path.basename(media.secure_url || media.url || media.path || ""),
+    ...((media.sourcePaths || []).map((sourcePath) => path.basename(sourcePath || "")))
+  ];
+
+  return Array.from(
+    new Set(
+      rawValues
+        .map((value) => normalizeIdentity(value))
+        .filter(Boolean)
+    )
+  );
+}
+
 function normalizeMedia(media = {}, fallbackKind = "dashboard") {
   const secureUrl = media.secure_url || media.url || media.path || "";
   const publicId = media.public_id || media.publicId || media.cloudinaryPublicId || "";
@@ -66,6 +85,7 @@ function normalizeMedia(media = {}, fallbackKind = "dashboard") {
     size: Number(media.size) || 0,
     uploaded_at: uploadedAt,
     createdAt: uploadedAt,
+    sourcePaths: Array.isArray(media.sourcePaths) ? media.sourcePaths : [],
     gallery: Array.isArray(media.gallery) ? media.gallery : [],
     cloudinaryGallery: Array.isArray(media.cloudinaryGallery) ? media.cloudinaryGallery : []
   };
@@ -214,20 +234,22 @@ async function removeMediaById(mediaId) {
 async function removeDocumentMedia(documentItem = {}) {
   const publicId = documentItem.public_id || documentItem.publicId || documentItem.cloudinaryPublicId || "";
   const mediaItems = await readMedia();
-  const identity = getMediaIdentity({
-    title: documentItem.title,
-    secure_url: documentItem.path || documentItem.secure_url || documentItem.url
-  });
+  const documentIdentityKeys = new Set(getMediaIdentityKeys(documentItem));
+  const documentPath = documentItem.path || documentItem.secure_url || documentItem.url || "";
+  const documentSourcePaths = new Set(Array.isArray(documentItem.sourcePaths) ? documentItem.sourcePaths : []);
   const client = documentItem.client || "stellantis";
   const section = documentItem.section || "quality";
   const removed = [];
   const retained = mediaItems.filter((item) => {
     const matchesPublicId = publicId && item.public_id === publicId;
+    const matchesPath = documentPath && item.secure_url === documentPath;
+    const matchesSourcePath = (item.sourcePaths || []).some((sourcePath) => documentSourcePaths.has(sourcePath));
+    const matchesIdentity = getMediaIdentityKeys(item).some((identityKey) => documentIdentityKeys.has(identityKey));
     const matchesDocument =
       item.kind === "document" &&
       item.client === client &&
       item.section === section &&
-      (item.secure_url === documentItem.path || getMediaIdentity(item) === identity);
+      (matchesPath || matchesSourcePath || matchesIdentity);
 
     if (matchesPublicId || matchesDocument) {
       removed.push(item);

@@ -73,6 +73,7 @@ const supportViewerPanelNode = document.querySelector("[data-support-viewer-pane
 const supportFormNode = document.querySelector("[data-support-form]");
 const supportTypeInputNode = document.querySelector("[data-support-type-input]");
 const supportTypeCardNodes = document.querySelectorAll("[data-support-type-card]");
+const supportPriorityFieldNode = document.querySelector("[data-support-priority-field]");
 const supportPriorityInputNode = document.querySelector("[data-support-priority-input]");
 const supportDateInputNode = document.querySelector("[data-support-date-input]");
 const supportWeekInputNode = document.querySelector("[data-support-week-input]");
@@ -87,6 +88,9 @@ const supportPhotoPreviewNode = document.querySelector("[data-support-photo-prev
 const supportCopyButtonNode = document.querySelector("[data-support-copy-button]");
 const supportStatusNode = document.querySelector("[data-support-status]");
 const supportHistoryNode = document.querySelector("[data-support-history]");
+const supportPhotoLightboxNode = document.querySelector("[data-support-photo-lightbox]");
+const supportPhotoLightboxImageNode = document.querySelector("[data-support-photo-lightbox-image]");
+const supportPhotoLightboxCloseNode = document.querySelector("[data-support-photo-lightbox-close]");
 const verifyLocationBtn = document.getElementById("verifyLocationBtn");
 const adminLoginBtn = document.getElementById("adminLoginBtn");
 const adminLoginModal = document.getElementById("adminLoginModal");
@@ -349,15 +353,26 @@ function normalizeDocumentIdentity(value = "") {
 }
 
 function getDocumentIdentityKey(documentItem) {
-  if (documentItem.id) {
-    return normalizeDocumentIdentity(documentItem.id);
-  }
+  return getDocumentIdentityKeys(documentItem)[0] || "";
+}
 
-  const rawTitle =
-    documentItem.title ||
-    decodeURIComponent((documentItem.path || "").split("/").pop() || "");
+function getDocumentIdentityKeys(documentItem = {}) {
+  const rawValues = [
+    documentItem.id,
+    documentItem.title,
+    decodeURIComponent((documentItem.path || "").split("/").pop() || ""),
+    ...(Array.isArray(documentItem.sourcePaths)
+      ? documentItem.sourcePaths.map((sourcePath) => decodeURIComponent(sourcePath.split("/").pop() || ""))
+      : [])
+  ];
 
-  return normalizeDocumentIdentity(rawTitle);
+  return Array.from(
+    new Set(
+      rawValues
+        .map((value) => normalizeDocumentIdentity(String(value || "")))
+        .filter(Boolean)
+    )
+  );
 }
 
 function getDocumentCollectionKey(client, section = "quality") {
@@ -1255,16 +1270,63 @@ function getSupportLineLabelKey(lineValue = "") {
   return "supportLinePlaceholder";
 }
 
+function openSupportPhotoLightbox(imageUrl = "", imageAlt = "") {
+  if (!supportPhotoLightboxNode || !supportPhotoLightboxImageNode || !imageUrl) {
+    return;
+  }
+
+  supportPhotoLightboxImageNode.src = imageUrl;
+  supportPhotoLightboxImageNode.alt = imageAlt || getText(document.documentElement.lang || "fr", "supportFieldPhoto");
+  supportPhotoLightboxNode.hidden = false;
+  supportPhotoLightboxNode.classList.add("is-open");
+  document.body.classList.add("is-support-photo-lightbox-open");
+
+  if (supportPhotoLightboxCloseNode) {
+    supportPhotoLightboxCloseNode.focus();
+  }
+}
+
+function closeSupportPhotoLightbox() {
+  if (!supportPhotoLightboxNode || supportPhotoLightboxNode.hidden) {
+    return;
+  }
+
+  supportPhotoLightboxNode.hidden = true;
+  supportPhotoLightboxNode.classList.remove("is-open");
+  document.body.classList.remove("is-support-photo-lightbox-open");
+
+  if (supportPhotoLightboxImageNode) {
+    supportPhotoLightboxImageNode.removeAttribute("src");
+    supportPhotoLightboxImageNode.alt = "";
+  }
+}
+
 function updateSupportTypeCards(type = "message") {
   if (supportTypeInputNode) {
     supportTypeInputNode.value = type;
   }
+
+  const isComplaint = type === "complaint";
 
   supportTypeCardNodes.forEach((card) => {
     const isActive = card.dataset.supportType === type;
     card.classList.toggle("is-active", isActive);
     card.setAttribute("aria-pressed", isActive ? "true" : "false");
   });
+
+  if (supportPriorityFieldNode) {
+    supportPriorityFieldNode.hidden = !isComplaint;
+    supportPriorityFieldNode.closest(".support-form-grid")?.classList.toggle("support-form-grid--priority-hidden", !isComplaint);
+  }
+
+  if (supportPriorityInputNode) {
+    supportPriorityInputNode.disabled = !isComplaint;
+    if (!isComplaint) {
+      supportPriorityInputNode.value = "formal";
+    }
+  }
+
+  updateSupportPriorityStyle();
 }
 
 function updateSupportPriorityStyle() {
@@ -1303,14 +1365,13 @@ function formatSupportDate(value, lang) {
 
 function buildSupportDraft(client) {
   const lineLabel = getSelectedSupportLineLabel();
-
-  return {
+  const supportType = (supportTypeInputNode && supportTypeInputNode.value) || "message";
+  const draft = {
     name: lineLabel || getText(document.documentElement.lang || "fr", getClientTranslationKey(client)),
     client,
     line: lineLabel,
     lineValue: selectedSupportLine || (supportLineInputNode && supportLineInputNode.value) || "",
-    type: (supportTypeInputNode && supportTypeInputNode.value) || "message",
-    priority: (supportPriorityInputNode && supportPriorityInputNode.value) || "formal",
+    type: supportType,
     senderPhone: (supportPhoneInputNode && supportPhoneInputNode.value.trim()) || "",
     subject: (supportSubjectInputNode && supportSubjectInputNode.value.trim()) || "",
     details: (supportDetailsInputNode && supportDetailsInputNode.value.trim()) || "",
@@ -1321,6 +1382,12 @@ function buildSupportDraft(client) {
     })),
     createdAt: new Date().toISOString()
   };
+
+  if (supportType === "complaint") {
+    draft.priority = (supportPriorityInputNode && supportPriorityInputNode.value) || "formal";
+  }
+
+  return draft;
 }
 function buildSupportMessage(entry, lang) {
   const translatedLine =
@@ -1329,9 +1396,12 @@ function buildSupportMessage(entry, lang) {
       : entry.line || "";
   const lines = [
     `${getText(lang, "supportLabelClient")}: ${getText(lang, getClientTranslationKey(entry.client || "stellantis"))}`,
-    `${getText(lang, "supportLabelType")}: ${getText(lang, getSupportTypeLabelKey(entry.type || "message"))}`,
-    `${getText(lang, "supportFieldPriority")}: ${getText(lang, getSupportPriorityLabelKey(entry.priority || "formal"))}`
+    `${getText(lang, "supportLabelType")}: ${getText(lang, getSupportTypeLabelKey(entry.type || "message"))}`
   ];
+
+  if (entry.type === "complaint") {
+    lines.push(`${getText(lang, "supportFieldPriority")}: ${getText(lang, getSupportPriorityLabelKey(entry.priority || "formal"))}`);
+  }
 
   if (translatedLine) {
     lines.push(`${getText(lang, "supportFieldLine")}: ${translatedLine}`);
@@ -1707,6 +1777,7 @@ function renderSupportHistory(lang) {
         : entry.line || "";
     const itemNode = document.createElement("article");
     itemNode.className = "support-history-item";
+    itemNode.setAttribute("role", "listitem");
 
     const topNode = document.createElement("div");
     topNode.className = "support-history-item__top";
@@ -1718,15 +1789,20 @@ function renderSupportHistory(lang) {
     typeBadgeNode.className = "support-history-item__badge";
     typeBadgeNode.textContent = getText(lang, getSupportTypeLabelKey(entry.type));
 
-    const priorityBadgeNode = document.createElement("span");
-    priorityBadgeNode.className = `support-history-item__badge support-history-item__badge--priority support-history-item__badge--priority-${entry.priority || "formal"}`;
-    priorityBadgeNode.textContent = getText(lang, getSupportPriorityLabelKey(entry.priority));
-
     const statusBadgeNode = document.createElement("span");
     statusBadgeNode.className = `support-history-item__badge support-history-item__badge--status support-history-item__badge--${entry.status || "pending"}`;
     statusBadgeNode.textContent = getText(lang, getSupportStatusLabelKey(entry.status));
 
-    badgesNode.append(typeBadgeNode, priorityBadgeNode, statusBadgeNode);
+    badgesNode.appendChild(typeBadgeNode);
+
+    if (entry.type === "complaint") {
+      const priorityBadgeNode = document.createElement("span");
+      priorityBadgeNode.className = `support-history-item__badge support-history-item__badge--priority support-history-item__badge--priority-${entry.priority || "formal"}`;
+      priorityBadgeNode.textContent = getText(lang, getSupportPriorityLabelKey(entry.priority));
+      badgesNode.appendChild(priorityBadgeNode);
+    }
+
+    badgesNode.appendChild(statusBadgeNode);
 
     const dateNode = document.createElement("span");
     dateNode.className = "support-history-item__date";
@@ -1801,19 +1877,38 @@ function renderSupportHistory(lang) {
     if (imageUrls.length) {
       const galleryNode = document.createElement("div");
       galleryNode.className = "support-history-item__gallery";
+      galleryNode.setAttribute("aria-label", getText(lang, "supportLabelPhotos"));
 
       imageUrls.forEach((imageUrl, attachmentIndex) => {
         if (!imageUrl) {
           return;
         }
 
+        const mediaNode = document.createElement("figure");
+        mediaNode.className = "support-history-item__media";
+
+        const imageButtonNode = document.createElement("button");
+        imageButtonNode.type = "button";
+        imageButtonNode.className = "support-history-item__photo-button";
+        imageButtonNode.setAttribute("aria-label", `${getText(lang, "supportFieldPhoto")} ${attachmentIndex + 1}`);
+
         const imageNode = document.createElement("img");
         imageNode.src = imageUrl;
         imageNode.alt = `${getText(lang, "supportFieldPhoto")} ${attachmentIndex + 1}`;
-        galleryNode.appendChild(imageNode);
+        imageNode.loading = "lazy";
+        imageNode.decoding = "async";
+
+        imageButtonNode.addEventListener("click", () => {
+          openSupportPhotoLightbox(imageUrl, imageNode.alt);
+        });
+
+        imageButtonNode.appendChild(imageNode);
+        mediaNode.appendChild(imageButtonNode);
+        galleryNode.appendChild(mediaNode);
       });
 
       if (galleryNode.childElementCount) {
+        galleryNode.classList.add(`support-history-item__gallery--count-${Math.min(galleryNode.childElementCount, 3)}`);
         itemNode.appendChild(galleryNode);
       }
     }
@@ -1838,6 +1933,10 @@ function updateSupportAccess(lang) {
 
   if (supportPhotoInputNode) {
     supportPhotoInputNode.disabled = !adminActive;
+  }
+
+  if (supportPriorityInputNode && supportTypeInputNode && supportTypeInputNode.value !== "complaint") {
+    supportPriorityInputNode.disabled = true;
   }
 
   if (!adminActive && supportStatusNode) {
@@ -2062,18 +2161,26 @@ function getClientDocuments(client, section = "quality") {
   const collectionKey = getDocumentCollectionKey(client, normalizedSection);
   const serverDocuments = documentServerDocuments.get(collectionKey) || [];
   const documentsByName = new Map();
+  const identityAliases = new Map();
+
+  function upsertDocument(documentItem) {
+    const identityKeys = getDocumentIdentityKeys(documentItem);
+    const matchedKey = identityKeys.find((identityKey) => identityAliases.has(identityKey));
+    const primaryKey = matchedKey
+      ? identityAliases.get(matchedKey)
+      : identityKeys[0] || documentItem.id || documentItem.path || documentItem.title;
+
+    documentsByName.set(primaryKey, documentItem);
+    identityKeys.forEach((identityKey) => {
+      identityAliases.set(identityKey, primaryKey);
+    });
+  }
 
   availableBaseDocuments
     .filter((documentItem) => !documentDeletedPaths.has(documentItem.path))
-    .forEach((documentItem) => {
-      const identityKey = getDocumentIdentityKey(documentItem);
-      documentsByName.set(identityKey || documentItem.id, documentItem);
-    });
+    .forEach(upsertDocument);
 
-  serverDocuments.forEach((documentItem) => {
-    const identityKey = getDocumentIdentityKey(documentItem);
-    documentsByName.set(identityKey || documentItem.id, documentItem);
-  });
+  serverDocuments.forEach(upsertDocument);
 
   return Array.from(documentsByName.values()).sort(compareDocumentTitles);
 }
@@ -2194,9 +2301,11 @@ async function deleteDocumentFile(documentItem, client, section, lang) {
       body: JSON.stringify({
         client,
         section,
+        id: documentItem.id || "",
         path: documentItem.path,
         title: documentItem.title,
         mediaType: documentItem.mediaType,
+        sourcePaths: documentItem.sourcePaths || [],
         gallery: documentItem.gallery || [],
         cloudinaryPublicId: documentItem.cloudinaryPublicId || "",
         cloudinaryResourceType: documentItem.cloudinaryResourceType || "",
@@ -2962,7 +3071,26 @@ function setupLocationGate() {
     });
   }
 
+  if (supportPhotoLightboxCloseNode) {
+    supportPhotoLightboxCloseNode.addEventListener("click", () => {
+      closeSupportPhotoLightbox();
+    });
+  }
+
+  if (supportPhotoLightboxNode) {
+    supportPhotoLightboxNode.addEventListener("click", (event) => {
+      if (event.target === supportPhotoLightboxNode) {
+        closeSupportPhotoLightbox();
+      }
+    });
+  }
+
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && supportPhotoLightboxNode && !supportPhotoLightboxNode.hidden) {
+      closeSupportPhotoLightbox();
+      return;
+    }
+
     if (event.key === "Escape" && adminLoginModal && !adminLoginModal.hidden) {
       closeAdminLoginModal();
     }

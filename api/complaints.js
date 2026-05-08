@@ -27,7 +27,7 @@ function serializeComplaint(complaint) {
     client: complaint.client || "stellantis",
     line: complaint.line || "",
     lineValue: complaint.lineValue || "",
-    priority: complaint.priority || "formal",
+    priority: complaint.type === "complaint" ? complaint.priority || "formal" : "",
     senderPhone: complaint.senderPhone || "",
     createdAt: complaint.createdAt
   };
@@ -65,7 +65,7 @@ async function createComplaint(request, response, deps) {
   const subject = cleanString(body.subject);
   const details = cleanString(body.details);
   const name = cleanString(body.name, cleanString(body.line, "Atelier"));
-  const priority = cleanString(body.priority, "formal");
+  const priority = type === "complaint" ? cleanString(body.priority, "formal") : "";
 
   if (!VALID_TYPES.has(type)) {
     sendApiError(sendJson, response, 400, "Invalid complaint type");
@@ -77,7 +77,7 @@ async function createComplaint(request, response, deps) {
     return;
   }
 
-  if (!VALID_PRIORITIES.has(priority)) {
+  if (type === "complaint" && !VALID_PRIORITIES.has(priority)) {
     sendApiError(sendJson, response, 400, "Invalid priority");
     return;
   }
