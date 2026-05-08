@@ -1983,6 +1983,10 @@ body.rtl .document-viewer-doc-link {
   color: #198273;
 }
 
+.support-type-card[data-support-type="message"] .support-type-card__icon {
+  display: none;
+}
+
 .support-type-card__icon--recommendation {
   color: #2d6cc8;
 }
