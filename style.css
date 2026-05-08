@@ -671,14 +671,20 @@ main {
 }
 
 .welcome-banner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  max-width: min(92vw, 420px);
   margin-top: 0;
   margin-bottom: 8px;
-  min-width: 320px;
-  padding: 12px 24px;
+  min-width: 0;
+  padding: 10px 16px;
   border: 1px solid var(--panel-border);
-  border-radius: 24px;
+  border-radius: 22px;
   background: var(--panel-dark);
   backdrop-filter: blur(12px);
+  overflow: hidden;
   text-align: center;
   box-shadow:
     0 18px 40px rgba(0, 0, 0, 0.2),
@@ -710,11 +716,12 @@ main {
 
 .welcome-logo {
   display: block;
-  width: min(100%, 360px);
-  height: auto;
+  width: clamp(210px, 24vw, 280px);
+  height: clamp(68px, 8vw, 90px);
   margin: 0 auto;
-  border-radius: 16px;
-  object-fit: contain;
+  border-radius: 14px;
+  object-fit: cover;
+  object-position: center;
 }
 
 .login-card {
@@ -1860,6 +1867,78 @@ body.rtl .document-viewer-doc-link {
   margin-top: 18px;
 }
 
+.support-weekly-dashboard {
+  margin-bottom: 18px;
+  padding: 20px;
+  border-radius: 22px;
+  background: rgba(16, 24, 37, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.support-weekly-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.support-weekly-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88px;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff7f2;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.support-weekly-choice:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 181, 145, 0.26);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.support-weekly-choice.is-active {
+  border-color: rgba(255, 194, 162, 0.3);
+  background:
+    radial-gradient(circle at top right, rgba(255, 154, 110, 0.18), transparent 44%),
+    linear-gradient(180deg, rgba(110, 50, 42, 0.56), rgba(83, 39, 37, 0.48));
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.14);
+}
+
+.support-weekly-choice strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 54px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  font-size: 1.4rem;
+}
+
+.support-page--weekly-dashboard .support-types,
+.support-page--weekly-dashboard [data-support-priority-field] {
+  display: none;
+}
+
+.support-page--weekly-dashboard [data-support-copy-button] {
+  display: none;
+}
+
+.support-page--weekly-dashboard .support-form-grid--priority-subject {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .support-panel--viewer {
   margin-bottom: 18px;
   background: rgba(28, 51, 67, 0.3);
@@ -2599,7 +2678,8 @@ body.is-support-photo-lightbox-open {
 }
 
 .support-page .support-panel,
-.support-page .support-history {
+.support-page .support-history,
+.support-page .support-weekly-dashboard {
   border: 1px solid rgba(204, 214, 226, 0.94);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(244, 249, 248, 0.74));
   box-shadow: 0 18px 34px rgba(37, 56, 88, 0.05);
@@ -2633,6 +2713,30 @@ body.is-support-photo-lightbox-open {
   border: 1px solid rgba(203, 214, 226, 0.94);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(244, 250, 248, 0.74));
   color: #173f3a;
+}
+
+.support-page .support-weekly-choice {
+  border: 1px solid rgba(203, 214, 226, 0.94);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(244, 250, 248, 0.74));
+  color: #173f3a;
+}
+
+.support-page .support-weekly-choice:hover {
+  border-color: rgba(67, 151, 140, 0.44);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(237, 248, 245, 0.82));
+}
+
+.support-page .support-weekly-choice.is-active {
+  border-color: rgba(47, 134, 122, 0.36);
+  background:
+    radial-gradient(circle at top right, rgba(190, 235, 227, 0.58), transparent 46%),
+    linear-gradient(180deg, rgba(244, 255, 252, 0.88), rgba(228, 244, 240, 0.8));
+  box-shadow: 0 14px 28px rgba(55, 129, 119, 0.12);
+}
+
+.support-page .support-weekly-choice strong {
+  background: rgba(31, 160, 143, 0.12);
+  color: #196d62;
 }
 
 .support-page .support-type-card:hover {
@@ -3006,6 +3110,13 @@ body.is-support-photo-lightbox-open {
   margin-top: 28px;
 }
 
+.client-grid--weekly-documents {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 900px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
 .client-select-note {
   margin: 24px 0 0;
   text-align: center;
@@ -3084,6 +3195,27 @@ body.is-support-photo-lightbox-open {
   color: #ffb08d;
   font-size: 0.92rem;
   font-weight: 700;
+}
+
+.weekly-document-card {
+  min-height: 220px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.weekly-document-card__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 181, 145, 0.34);
+  background: rgba(255, 181, 145, 0.12);
+  color: #ffb691;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .dashboard-brand-card {
@@ -3862,6 +3994,7 @@ body.rtl .summary-card::before {
   }
 
   .support-types,
+  .support-weekly-choices,
   .support-form-grid,
   .support-line-controls {
     grid-template-columns: 1fr;
@@ -3960,9 +4093,16 @@ body.rtl .summary-card::before {
   }
 
   .welcome-banner {
-    width: 100%;
+    width: auto;
+    max-width: min(92vw, 360px);
     min-width: 0;
     margin-top: 0;
+    padding: 8px 12px;
+  }
+
+  .welcome-logo {
+    width: min(240px, 72vw);
+    height: 74px;
   }
 
   .login-card {
@@ -4002,6 +4142,7 @@ body.rtl .summary-card::before {
 
   .support-shell,
   .support-line-step,
+  .support-weekly-dashboard,
   .support-panel,
   .support-history {
     padding: 18px;
@@ -4326,6 +4467,7 @@ body.rtl .summary-card::before {
   .document-viewer-shell,
   .support-shell,
   .support-line-step,
+  .support-weekly-dashboard,
   .support-panel,
   .support-history {
     padding: 16px 14px;
@@ -4345,6 +4487,11 @@ body.rtl .summary-card::before {
     grid-template-columns: 110px minmax(0, 1fr);
     grid-template-rows: auto auto;
     align-items: center;
+    text-align: left;
+  }
+
+  .weekly-document-card {
+    grid-template-columns: 1fr;
     text-align: left;
   }
 

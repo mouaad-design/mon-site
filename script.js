@@ -63,6 +63,9 @@ const documentClosePreviewNode = document.querySelector("[data-doc-close-preview
 const documentActionStatusNode = document.querySelector("[data-doc-action-status]");
 const documentStatusNodes = document.querySelectorAll("[data-doc-status]");
 const supportClientNameNode = document.querySelector("[data-support-client-name]");
+const weeklyComplaintsDashboardNode = document.querySelector("[data-weekly-complaints-dashboard]");
+const weeklyComplaintsPriorityNodes = document.querySelectorAll("[data-weekly-complaints-priority]");
+const weeklyComplaintsCountNodes = document.querySelectorAll("[data-weekly-complaints-count]");
 const supportLineStepNode = document.querySelector(".support-line-step");
 const supportUnavailableNode = document.querySelector("[data-support-unavailable]");
 const supportLineSelectNode = document.querySelector("[data-support-line-select]");
@@ -74,6 +77,8 @@ const supportViewerPanelNode = document.querySelector("[data-support-viewer-pane
 const supportFormNode = document.querySelector("[data-support-form]");
 const supportTypeInputNode = document.querySelector("[data-support-type-input]");
 const supportTypeCardNodes = document.querySelectorAll("[data-support-type-card]");
+const supportClientFieldNode = document.querySelector("[data-support-client-field]");
+const supportClientInputNode = document.querySelector("[data-support-client-input]");
 const supportPriorityFieldNode = document.querySelector("[data-support-priority-field]");
 const supportPriorityInputNode = document.querySelector("[data-support-priority-input]");
 const supportDateInputNode = document.querySelector("[data-support-date-input]");
@@ -115,6 +120,7 @@ let locationAttemptCount = 0;
 let locationRequestInProgress = false;
 let supportStatusKey = "supportStatusIdle";
 let selectedSupportLine = "";
+let weeklyComplaintPriorityFilter = "formal";
 let supportPhotoItems = [];
 let supportPhotoProcessing = false;
 let supportEntries = [];
@@ -291,7 +297,13 @@ function confirmDeleteAction(lang = document.documentElement.lang || "fr") {
 }
 
 function normalizeDocumentSection(section) {
-  if (section === "training" || section === "tutorials" || section === "quiz") {
+  if (
+    section === "training" ||
+    section === "tutorials" ||
+    section === "quiz" ||
+    section === "complaints-formal" ||
+    section === "complaints-informal"
+  ) {
     return section;
   }
 
@@ -322,6 +334,14 @@ function getDocumentSectionLabelKey(section = "quality") {
 
   if (normalizedSection === "tutorials") {
     return "dashboardCard3Title";
+  }
+
+  if (normalizedSection === "complaints-formal") {
+    return "weeklyComplaintsFormalDocuments";
+  }
+
+  if (normalizedSection === "complaints-informal") {
+    return "weeklyComplaintsInformalDocuments";
   }
 
   return "dashboardCard4Title";
@@ -847,12 +867,7 @@ function getCurrentIsoWeekKey() {
 }
 
 function openWeeklyComplaints() {
-  localStorage.setItem(CLIENT_STORAGE_KEY, "stellantis");
-  const params = new URLSearchParams();
-  params.set("client", "stellantis");
-  params.set("view", "weekly-complaints");
-  params.set("week", getCurrentIsoWeekKey());
-  window.location.href = `./support-center.html?${params.toString()}`;
+  window.location.href = "./weekly-complaints.html";
 }
 
 function openDocumentViewer(documentPath = "", client = "", section = "quality") {
@@ -1190,22 +1205,65 @@ function isWeeklyComplaintsView() {
   return getSupportUrlParams().get("view") === "weekly-complaints";
 }
 
+function normalizeSupportPriority(priority = "") {
+  return priority === "informal" ? "informal" : "formal";
+}
+
+function getWeeklyComplaintPriorityFilter() {
+  const requestedPriority = getSupportUrlParams().get("priority");
+  if (requestedPriority === "formal" || requestedPriority === "informal") {
+    weeklyComplaintPriorityFilter = requestedPriority;
+  }
+
+  return normalizeSupportPriority(weeklyComplaintPriorityFilter);
+}
+
+function setWeeklyComplaintPriorityFilter(priority = "formal") {
+  weeklyComplaintPriorityFilter = normalizeSupportPriority(priority);
+
+  if (supportPriorityInputNode) {
+    supportPriorityInputNode.value = weeklyComplaintPriorityFilter;
+    updateSupportPriorityStyle();
+  }
+
+  if (window.history && window.history.replaceState) {
+    const params = getSupportUrlParams();
+    params.set("view", "weekly-complaints");
+    params.set("priority", weeklyComplaintPriorityFilter);
+    if (supportWeekFilterNode && supportWeekFilterNode.value) {
+      params.set("week", supportWeekFilterNode.value);
+    }
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+  }
+
+  renderWeeklyComplaintsDashboard(document.documentElement.lang || "fr");
+  renderSupportHistory(document.documentElement.lang || "fr");
+}
+
 function getSupportCenterConfig() {
   const params = getSupportUrlParams();
-  const client = params.get("client") || getStoredClient();
   const weeklyComplaintsView = isWeeklyComplaintsView();
+  const client = weeklyComplaintsView ? "versigent" : params.get("client") || getStoredClient();
   const lineValue = weeklyComplaintsView ? "" : getCurrentSupportLineValue();
+  const priorityFilter = weeklyComplaintsView ? getWeeklyComplaintPriorityFilter() : "";
   const dateFilter = (supportDateInputNode && supportDateInputNode.value) || "";
   const weekFilter =
-    params.get("week") ||
     (supportWeekFilterNode && supportWeekFilterNode.value) ||
+    params.get("week") ||
     (supportWeekInputNode && supportWeekInputNode.value) ||
     "";
   const entries = getSupportEntries()
     .filter((entry) => {
+      if (weeklyComplaintsView) {
+        return (
+          entry.type === "complaint" &&
+          normalizeSupportPriority(entry.priority) === priorityFilter &&
+          doesEntryMatchScheduleFilter(entry, dateFilter, weekFilter)
+        );
+      }
+
       return (
         entry.client === client &&
-        (!weeklyComplaintsView || entry.type === "complaint") &&
         doesEntryMatchSupportLine(entry, lineValue) &&
         doesEntryMatchScheduleFilter(entry, dateFilter, weekFilter)
       );
@@ -1217,6 +1275,7 @@ function getSupportCenterConfig() {
   return {
     client,
     lineValue,
+    priorityFilter,
     weeklyComplaintsView,
     entries
   };
@@ -1354,6 +1413,10 @@ function closeSupportPhotoLightbox() {
 }
 
 function updateSupportTypeCards(type = "message") {
+  if (isWeeklyComplaintsView()) {
+    type = "complaint";
+  }
+
   if (supportTypeInputNode) {
     supportTypeInputNode.value = type;
   }
@@ -1416,13 +1479,14 @@ function formatSupportDate(value, lang) {
 }
 
 function buildSupportDraft(client) {
-  const lineLabel = getSelectedSupportLineLabel();
-  const supportType = (supportTypeInputNode && supportTypeInputNode.value) || "message";
+  const weeklyComplaintsView = isWeeklyComplaintsView();
+  const lineLabel = weeklyComplaintsView ? "" : getSelectedSupportLineLabel();
+  const supportType = weeklyComplaintsView ? "complaint" : (supportTypeInputNode && supportTypeInputNode.value) || "message";
   const draft = {
     name: lineLabel || getText(document.documentElement.lang || "fr", getClientTranslationKey(client)),
-    client,
+    client: weeklyComplaintsView ? (supportClientInputNode && supportClientInputNode.value) || "stellantis" : client,
     line: lineLabel,
-    lineValue: selectedSupportLine || (supportLineInputNode && supportLineInputNode.value) || "",
+    lineValue: weeklyComplaintsView ? "" : selectedSupportLine || (supportLineInputNode && supportLineInputNode.value) || "",
     type: supportType,
     senderPhone: (supportPhoneInputNode && supportPhoneInputNode.value.trim()) || "",
     subject: (supportSubjectInputNode && supportSubjectInputNode.value.trim()) || "",
@@ -1772,13 +1836,67 @@ function getSelectedSupportLineLabel() {
   return selectedOption.textContent.trim();
 }
 
+function getWeeklyComplaintDashboardEntries() {
+  const dateFilter = (supportDateInputNode && supportDateInputNode.value) || "";
+  const weekFilter =
+    (supportWeekFilterNode && supportWeekFilterNode.value) ||
+    getSupportUrlParams().get("week") ||
+    getCurrentIsoWeekKey();
+
+  return getSupportEntries().filter((entry) => {
+    return (
+      entry.type === "complaint" &&
+      doesEntryMatchScheduleFilter(entry, dateFilter, weekFilter)
+    );
+  });
+}
+
+function renderWeeklyComplaintsDashboard(lang) {
+  if (!weeklyComplaintsDashboardNode) {
+    return;
+  }
+
+  const weeklyComplaintsView = isWeeklyComplaintsView();
+  weeklyComplaintsDashboardNode.hidden = !weeklyComplaintsView;
+
+  if (!weeklyComplaintsView) {
+    return;
+  }
+
+  const activePriority = getWeeklyComplaintPriorityFilter();
+  const counts = {
+    formal: 0,
+    informal: 0
+  };
+
+  getWeeklyComplaintDashboardEntries().forEach((entry) => {
+    counts[normalizeSupportPriority(entry.priority)] += 1;
+  });
+
+  weeklyComplaintsCountNodes.forEach((node) => {
+    const priority = normalizeSupportPriority(node.dataset.weeklyComplaintsCount);
+    node.textContent = String(counts[priority] || 0);
+  });
+
+  weeklyComplaintsPriorityNodes.forEach((button) => {
+    const isActive = normalizeSupportPriority(button.dataset.weeklyComplaintsPriority) === activePriority;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+
+  if (supportPriorityInputNode) {
+    supportPriorityInputNode.value = activePriority;
+    updateSupportPriorityStyle();
+  }
+}
+
 function updateSupportLineGate(lang) {
   if (!supportLineSelectNode || !supportContentNode) {
     return;
   }
 
   const weeklyComplaintsView = isWeeklyComplaintsView();
-  selectedSupportLine = supportLineSelectNode.value || "";
+  selectedSupportLine = weeklyComplaintsView ? "" : supportLineSelectNode.value || "";
   const hasSelectedLine = Boolean(selectedSupportLine) || weeklyComplaintsView;
 
   if (supportLineInputNode) {
@@ -1786,6 +1904,7 @@ function updateSupportLineGate(lang) {
   }
 
   if (supportLineStepNode) {
+    supportLineStepNode.hidden = weeklyComplaintsView;
     supportLineStepNode.classList.toggle("is-selected", hasSelectedLine);
   }
 
@@ -1806,7 +1925,8 @@ function renderSupportHistory(lang) {
     return;
   }
 
-  const { entries } = getSupportCenterConfig();
+  const { entries, weeklyComplaintsView } = getSupportCenterConfig();
+  renderWeeklyComplaintsDashboard(lang);
   supportHistoryNode.innerHTML = "";
 
   if (supportEntriesLoading) {
@@ -1908,6 +2028,7 @@ function renderSupportHistory(lang) {
     detailsNode.textContent = entry.details || "";
 
     const metaValues = [
+      weeklyComplaintsView && entry.client ? getText(lang, getClientTranslationKey(entry.client)) : "",
       translatedLine,
       entry.senderPhone
     ].filter(Boolean);
@@ -2004,11 +2125,15 @@ function updateSupportCenter(lang) {
     return;
   }
 
-  const { client } = getSupportCenterConfig();
+  const { client, weeklyComplaintsView } = getSupportCenterConfig();
   const translatedClientName = getText(lang, getClientTranslationKey(client));
-  const currentSupportType = (supportTypeInputNode && supportTypeInputNode.value) || "message";
+  const currentSupportType = weeklyComplaintsView ? "complaint" : (supportTypeInputNode && supportTypeInputNode.value) || "message";
 
-  localStorage.setItem(CLIENT_STORAGE_KEY, client);
+  document.body.classList.toggle("support-page--weekly-dashboard", weeklyComplaintsView);
+
+  if (!weeklyComplaintsView) {
+    localStorage.setItem(CLIENT_STORAGE_KEY, client);
+  }
   updateDashboardClientTheme(client);
 
   if (supportClientNameNode) {
@@ -2041,6 +2166,9 @@ function updateSupportCenter(lang) {
     if (requestedWeek && !supportWeekFilterNode.value) {
       supportWeekFilterNode.value = requestedWeek;
     }
+    if (weeklyComplaintsView && !supportWeekFilterNode.value) {
+      supportWeekFilterNode.value = getCurrentIsoWeekKey();
+    }
   }
 
   if (supportWeekInputNode) {
@@ -2052,6 +2180,36 @@ function updateSupportCenter(lang) {
 
   if (supportScheduleHintNode) {
     supportScheduleHintNode.textContent = getText(lang, "supportScheduleHint");
+  }
+
+  if (supportAdminPanelNode) {
+    const formKickerNode = supportAdminPanelNode.querySelector('[data-i18n="supportFormKicker"]');
+    const formTitleNode = supportAdminPanelNode.querySelector('[data-i18n="supportFormTitle"]');
+    const formTextNode = supportAdminPanelNode.querySelector('[data-i18n="supportFormText"]');
+
+    if (formKickerNode) {
+      formKickerNode.textContent = getText(lang, weeklyComplaintsView ? "supportWeeklyAddKicker" : "supportFormKicker");
+    }
+
+    if (formTitleNode) {
+      formTitleNode.textContent = getText(lang, weeklyComplaintsView ? "supportWeeklyAddTitle" : "supportFormTitle");
+    }
+
+    if (formTextNode) {
+      formTextNode.textContent = getText(lang, weeklyComplaintsView ? "supportWeeklyAddText" : "supportFormText");
+    }
+  }
+
+  if (supportClientFieldNode) {
+    supportClientFieldNode.hidden = !weeklyComplaintsView;
+  }
+
+  if (supportClientInputNode) {
+    supportClientInputNode.disabled = !weeklyComplaintsView;
+  }
+
+  if (weeklyComplaintsView) {
+    setWeeklyComplaintPriorityFilter(getWeeklyComplaintPriorityFilter());
   }
 
   updateSupportPhotoHelp(lang);
@@ -2070,6 +2228,12 @@ function setupSupportCenter() {
   if (!supportFormNode) {
     return;
   }
+
+  weeklyComplaintsPriorityNodes.forEach((button) => {
+    button.addEventListener("click", () => {
+      setWeeklyComplaintPriorityFilter(button.dataset.weeklyComplaintsPriority || "formal");
+    });
+  });
 
   if (supportLineSelectNode) {
     supportLineSelectNode.addEventListener("change", () => {
@@ -2091,12 +2255,28 @@ function setupSupportCenter() {
 
   if (supportWeekFilterNode) {
     supportWeekFilterNode.addEventListener("change", () => {
+      if (isWeeklyComplaintsView() && window.history && window.history.replaceState) {
+        const params = getSupportUrlParams();
+        params.set("view", "weekly-complaints");
+        params.set("priority", getWeeklyComplaintPriorityFilter());
+        if (supportWeekFilterNode.value) {
+          params.set("week", supportWeekFilterNode.value);
+        } else {
+          params.delete("week");
+        }
+        window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+      }
       renderSupportHistory(document.documentElement.lang || "fr");
     });
   }
 
   if (supportPriorityInputNode) {
-    supportPriorityInputNode.addEventListener("change", updateSupportPriorityStyle);
+    supportPriorityInputNode.addEventListener("change", () => {
+      updateSupportPriorityStyle();
+      if (isWeeklyComplaintsView()) {
+        setWeeklyComplaintPriorityFilter(supportPriorityInputNode.value || "formal");
+      }
+    });
     updateSupportPriorityStyle();
   }
 
@@ -2130,8 +2310,9 @@ function setupSupportCenter() {
       return;
     }
     updateSupportLineGate(lang);
+    const weeklyComplaintsView = isWeeklyComplaintsView();
 
-    if (!selectedSupportLine) {
+    if (!weeklyComplaintsView && !selectedSupportLine) {
       if (supportLineSelectNode) {
         supportLineSelectNode.focus();
       }
@@ -2185,8 +2366,9 @@ function setupSupportCenter() {
         return;
       }
       updateSupportLineGate(lang);
+      const weeklyComplaintsView = isWeeklyComplaintsView();
 
-      if (!selectedSupportLine) {
+      if (!weeklyComplaintsView && !selectedSupportLine) {
         if (supportLineSelectNode) {
           supportLineSelectNode.focus();
         }
@@ -2405,6 +2587,10 @@ function updateDocumentActions(client) {
   }
 
   documentActionNodes.forEach((button) => {
+    if (button.dataset.docStaticClient === "true") {
+      return;
+    }
+
     const section = normalizeDocumentSection(button.dataset.docSection || "quality");
     const isLocked = button.dataset.docLocked === "true";
     button.dataset.docPath = "";
@@ -2804,6 +2990,10 @@ function setupRevealAnimations() {
 }
 
 function getClientTranslationKey(client) {
+  if (client === "versigent") {
+    return "clientVersigent";
+  }
+
   if (client === "volvo") {
     return "clientVolvo";
   }
@@ -2839,7 +3029,8 @@ function updateDashboardClientTheme(client) {
   document.body.classList.remove(
     "dashboard-client--stellantis",
     "dashboard-client--volvo",
-    "dashboard-client--tesla"
+    "dashboard-client--tesla",
+    "dashboard-client--versigent"
   );
 
   document.body.classList.add(`dashboard-client--${client}`);
