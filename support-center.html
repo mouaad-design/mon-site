@@ -105,15 +105,11 @@
           </div>
 
           <form class="support-form" data-support-form>
-            <input type="hidden" name="supportType" value="message" data-support-type-input>
+            <input type="hidden" name="supportType" value="recommendation" data-support-type-input>
             <input type="hidden" name="productionLineSelected" value="" data-support-line-input>
 
             <div class="support-types">
-              <button type="button" class="support-type-card is-active" data-support-type-card data-support-type="message">
-                <span class="support-type-card__title" data-i18n="supportTypeMessage">Communication</span>
-                <span class="support-type-card__text" data-i18n="supportTypeMessageText">Partager une information ou une communication simple.</span>
-              </button>
-              <button type="button" class="support-type-card" data-support-type-card data-support-type="recommendation">
+              <button type="button" class="support-type-card is-active" data-support-type-card data-support-type="recommendation">
                 <span class="support-type-card__icon support-type-card__icon--recommendation" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path d="M12 4.5L14.3 9.2L19.5 10L15.8 13.7L16.7 19L12 16.5L7.3 19L8.2 13.7L4.5 10L9.7 9.2L12 4.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -141,6 +137,7 @@
                 <select name="priority" data-support-priority-input>
                   <option value="formal" data-i18n="supportPriorityFormal">Formel</option>
                   <option value="informal" data-i18n="supportPriorityInformal">Informel</option>
+                  <option value="communication" data-i18n="supportPriorityCommunication">Communication</option>
                 </select>
               </label>
 

@@ -16,36 +16,6 @@
       "cloudinaryResourceType": "image"
     },
     {
-      "id": "cs-operateur",
-      "title": "Fichier CS operateur",
-      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778100399/sc-training/documents/stellantis/quality/qs5zuf3mpgv0zsxmpjuw.png",
-      "mediaType": "image/png",
-      "client": "stellantis",
-      "section": "quality",
-      "sourcePaths": [
-        "./documents/stellantis/fichier-cs-operateur.png"
-      ],
-      "isServerSaved": true,
-      "migratedToCloudinary": true,
-      "cloudinaryPublicId": "sc-training/documents/stellantis/quality/qs5zuf3mpgv0zsxmpjuw",
-      "cloudinaryResourceType": "image"
-    },
-    {
-      "id": "mapping-charge-ar-v2",
-      "title": "Mapping charge AR version 2",
-      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778100401/sc-training/documents/stellantis/quality/sn2gr3byxwrxsp67txfq.png",
-      "mediaType": "image/png",
-      "client": "stellantis",
-      "section": "quality",
-      "sourcePaths": [
-        "./documents/stellantis/mapping-charge-ar-version-2.PNG"
-      ],
-      "isServerSaved": true,
-      "migratedToCloudinary": true,
-      "cloudinaryPublicId": "sc-training/documents/stellantis/quality/sn2gr3byxwrxsp67txfq",
-      "cloudinaryResourceType": "image"
-    },
-    {
       "id": "presentation-operateur",
       "title": "Présentation opérateur",
       "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778100403/sc-training/documents/stellantis/training/z38zbvfz0fb4eylpsmh9.png",
@@ -205,17 +175,50 @@
       "cloudinaryResourceType": "video"
     },
     {
-      "id": "capture-d-ecran-2026-04-09-143742",
-      "title": "Capture d'écran 2026-04-09 143742.png",
-      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778101905/sc-training/documents/stellantis/training/b6vhekyu9gmdetxdoc5s.png",
+      "id": "fichier-cs-operateur",
+      "title": "fichier CS opérateur .png",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778253453/sc-training/documents/stellantis/quality/tcl1zpntwvvkahww1qgq.png",
       "mediaType": "image/png",
       "client": "stellantis",
-      "section": "training",
+      "section": "quality",
       "isServerSaved": true,
-      "cloudinaryPublicId": "sc-training/documents/stellantis/training/b6vhekyu9gmdetxdoc5s",
+      "cloudinaryPublicId": "sc-training/documents/stellantis/quality/tcl1zpntwvvkahww1qgq",
+      "cloudinaryResourceType": "image"
+    },
+    {
+      "id": "mapping-charge-ar-version-2",
+      "title": "mapping-charge-ar-version-2.PNG",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778253724/sc-training/documents/stellantis/quality/fikwi6j2rumlzqwpifa7.png",
+      "mediaType": "image/png",
+      "client": "stellantis",
+      "section": "quality",
+      "isServerSaved": true,
+      "cloudinaryPublicId": "sc-training/documents/stellantis/quality/fikwi6j2rumlzqwpifa7",
       "cloudinaryResourceType": "image"
     }
   ],
-  "deletedPaths": [],
-  "deletedDocuments": []
+  "deletedPaths": [
+    "./documents/stellantis/mapping-charge-ar-version-2.PNG",
+    "./documents/stellantis/fichier-cs-operateur.png"
+  ],
+  "deletedDocuments": [
+    {
+      "id": "quiz-et-resultt-sc",
+      "title": "Quiz et Resultt SC.pdf",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778253471/sc-training/documents/stellantis/quality/baqyglqhmlir2sqjwzq5.pdf",
+      "client": "stellantis",
+      "section": "quality",
+      "sourcePaths": [],
+      "deletedAt": "2026-05-08T15:18:09.117Z"
+    },
+    {
+      "id": "capture-d-ecran-2026-04-09-143742",
+      "title": "Capture d'écran 2026-04-09 143742.png",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778101905/sc-training/documents/stellantis/training/b6vhekyu9gmdetxdoc5s.png",
+      "client": "stellantis",
+      "section": "training",
+      "sourcePaths": [],
+      "deletedAt": "2026-05-08T23:13:28.849Z"
+    }
+  ]
 }

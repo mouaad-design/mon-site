@@ -99,6 +99,7 @@ const supportPhotoLightboxImageNode = document.querySelector("[data-support-phot
 const supportPhotoLightboxCloseNode = document.querySelector("[data-support-photo-lightbox-close]");
 const verifyLocationBtn = document.getElementById("verifyLocationBtn");
 const adminLoginBtn = document.getElementById("adminLoginBtn");
+const visitorModeButtonNode = document.querySelector("[data-visitor-mode-button]");
 const adminLoginModal = document.getElementById("adminLoginModal");
 const adminLoginCloseBtn = document.getElementById("adminLoginClose");
 const adminLoginForm = document.getElementById("adminLoginForm");
@@ -236,6 +237,13 @@ async function clearAdminSessionOnServer() {
   } catch {
     // Visitor mode must stay local even if the network request fails.
   }
+}
+
+async function activateVisitorMode() {
+  await clearAdminSessionOnServer();
+  setAdminState(false);
+  unlockLocationGate("visitor");
+  applyRoleUi(document.documentElement.lang || "fr");
 }
 
 function applyRoleUi(lang = document.documentElement.lang || "fr") {
@@ -511,7 +519,6 @@ function updatePdfPager() {
   const totalItems = activeGalleryItems.length;
   const currentItem = activeGalleryIndex + 1;
   const hasImageGallery = activeGalleryItems.length > 0;
-  const zoomLocked = isMobileDocumentViewport();
 
   if (!documentPagerNode || !totalItems) {
     if (documentPagerNode) {
@@ -536,16 +543,16 @@ function updatePdfPager() {
   }
 
   if (documentZoomOutNode) {
-    documentZoomOutNode.disabled = zoomLocked || !hasImageGallery || activeDocumentZoom <= 1;
+    documentZoomOutNode.disabled = !hasImageGallery || activeDocumentZoom <= 1;
   }
 
   if (documentZoomInNode) {
-    documentZoomInNode.disabled = zoomLocked || !hasImageGallery || activeDocumentZoom >= 3;
+    documentZoomInNode.disabled = !hasImageGallery || activeDocumentZoom >= 3;
   }
 
   if (documentZoomResetNode) {
-    documentZoomResetNode.disabled = zoomLocked || !hasImageGallery || activeDocumentZoom === 1;
-    documentZoomResetNode.textContent = zoomLocked ? "100%" : `${Math.round(activeDocumentZoom * 100)}%`;
+    documentZoomResetNode.disabled = !hasImageGallery || activeDocumentZoom === 1;
+    documentZoomResetNode.textContent = `${Math.round(activeDocumentZoom * 100)}%`;
   }
 }
 
@@ -572,13 +579,6 @@ function updateDocumentImageZoom() {
 }
 
 function setDocumentZoom(nextZoom) {
-  if (isMobileDocumentViewport()) {
-    activeDocumentZoom = 1;
-    updateDocumentImageZoom();
-    updatePdfPager();
-    return;
-  }
-
   const normalizedZoom = Math.max(1, Math.min(3, Number(nextZoom) || 1));
   activeDocumentZoom = Math.round(normalizedZoom * 100) / 100;
   updateDocumentImageZoom();
@@ -1206,12 +1206,16 @@ function isWeeklyComplaintsView() {
 }
 
 function normalizeSupportPriority(priority = "") {
+  if (priority === "communication") {
+    return "communication";
+  }
+
   return priority === "informal" ? "informal" : "formal";
 }
 
 function getWeeklyComplaintPriorityFilter() {
   const requestedPriority = getSupportUrlParams().get("priority");
-  if (requestedPriority === "formal" || requestedPriority === "informal") {
+  if (requestedPriority === "formal" || requestedPriority === "informal" || requestedPriority === "communication") {
     weeklyComplaintPriorityFilter = requestedPriority;
   }
 
@@ -1294,6 +1298,10 @@ function getSupportTypeLabelKey(type = "message") {
 }
 
 function getSupportPriorityLabelKey(priority = "formal") {
+  if (priority === "communication") {
+    return "supportPriorityCommunication";
+  }
+
   if (priority === "informal") {
     return "supportPriorityInformal";
   }
@@ -1412,7 +1420,7 @@ function closeSupportPhotoLightbox() {
   }
 }
 
-function updateSupportTypeCards(type = "message") {
+function updateSupportTypeCards(type = "recommendation") {
   if (isWeeklyComplaintsView()) {
     type = "complaint";
   }
@@ -1481,7 +1489,7 @@ function formatSupportDate(value, lang) {
 function buildSupportDraft(client) {
   const weeklyComplaintsView = isWeeklyComplaintsView();
   const lineLabel = weeklyComplaintsView ? "" : getSelectedSupportLineLabel();
-  const supportType = weeklyComplaintsView ? "complaint" : (supportTypeInputNode && supportTypeInputNode.value) || "message";
+  const supportType = weeklyComplaintsView ? "complaint" : (supportTypeInputNode && supportTypeInputNode.value) || "recommendation";
   const draft = {
     name: lineLabel || getText(document.documentElement.lang || "fr", getClientTranslationKey(client)),
     client: weeklyComplaintsView ? (supportClientInputNode && supportClientInputNode.value) || "stellantis" : client,
@@ -1866,7 +1874,8 @@ function renderWeeklyComplaintsDashboard(lang) {
   const activePriority = getWeeklyComplaintPriorityFilter();
   const counts = {
     formal: 0,
-    informal: 0
+    informal: 0,
+    communication: 0
   };
 
   getWeeklyComplaintDashboardEntries().forEach((entry) => {
@@ -2127,7 +2136,7 @@ function updateSupportCenter(lang) {
 
   const { client, weeklyComplaintsView } = getSupportCenterConfig();
   const translatedClientName = getText(lang, getClientTranslationKey(client));
-  const currentSupportType = weeklyComplaintsView ? "complaint" : (supportTypeInputNode && supportTypeInputNode.value) || "message";
+  const currentSupportType = weeklyComplaintsView ? "complaint" : (supportTypeInputNode && supportTypeInputNode.value) || "recommendation";
 
   document.body.classList.toggle("support-page--weekly-dashboard", weeklyComplaintsView);
 
@@ -2297,7 +2306,7 @@ function setupSupportCenter() {
         updateSupportStatus(document.documentElement.lang || "fr", "supportViewerReadonly", "info");
         return;
       }
-      updateSupportTypeCards(card.dataset.supportType || "message");
+      updateSupportTypeCards(card.dataset.supportType || "recommendation");
     });
   });
 
@@ -3313,6 +3322,12 @@ function setupLocationGate() {
   if (adminLoginBtn) {
     adminLoginBtn.addEventListener("click", () => {
       openAdminLoginModal(document.documentElement.lang || "fr");
+    });
+  }
+
+  if (visitorModeButtonNode) {
+    visitorModeButtonNode.addEventListener("click", () => {
+      activateVisitorMode();
     });
   }
 

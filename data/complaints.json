@@ -1,36 +1,36 @@
 [
   {
-    "id": "103aa97b-c2c8-400f-b30f-f8388bc267ad",
+    "id": "db093581-4045-476f-a117-536625af824f",
     "name": "Charge AR",
-    "type": "complaint",
-    "subject": "Presence of white dot at inlet surface",
-    "details": "Family : Charge AR Bev EUR\nProduction date: Not shared\nPart number : 9846880280\nRejected quantity : 48",
-    "imageUrls": [
-      "https://res.cloudinary.com/dystakpay/image/upload/v1778164695/sc-training/complaints/hb1jvuqnwxzkd3d28stb.jpg"
-    ],
-    "status": "pending",
-    "client": "stellantis",
-    "line": "Charge AR",
-    "lineValue": "charge-ar",
-    "priority": "informal",
-    "senderPhone": "",
-    "createdAt": "2026-05-07T14:38:16.617Z"
-  },
-  {
-    "id": "2c62e715-674a-4715-bcf5-f94e5d60fd61",
-    "name": "Charge AR",
-    "type": "message",
+    "type": "recommendation",
     "subject": "Damaged connector KOSTAL (shunt part)",
     "details": "Family : Charge BEV\nPart number : 9846880280\nProduction date    : 19/12/2025\nRejected quantity : 1",
     "imageUrls": [
-      "https://res.cloudinary.com/dystakpay/image/upload/v1778166493/sc-training/complaints/zui035n5vxknonacbmus.jpg"
+      "https://res.cloudinary.com/dystakpay/image/upload/v1778236873/sc-training/complaints/d6fth5jaztyglhbthniv.jpg"
     ],
-    "status": "pending",
+    "status": "resolved",
     "client": "stellantis",
     "line": "Charge AR",
     "lineValue": "charge-ar",
-    "priority": "informal",
+    "priority": "",
     "senderPhone": "",
-    "createdAt": "2026-05-07T15:08:14.257Z"
+    "createdAt": "2026-05-08T10:41:14.145Z"
+  },
+  {
+    "id": "086b21c3-743a-42b6-bb1a-d8c464605c74",
+    "name": "Charge AR",
+    "type": "recommendation",
+    "subject": "Presence of white dot at inlet surface",
+    "details": "Family : Charge AR Bev EUR\nProduction date: Not shared\nPart number : 9846880280\nRejected quantity : 48",
+    "imageUrls": [
+      "https://res.cloudinary.com/dystakpay/image/upload/v1778237042/sc-training/complaints/pwe5invkdlewn48d3eyk.jpg"
+    ],
+    "status": "resolved",
+    "client": "stellantis",
+    "line": "Charge AR",
+    "lineValue": "charge-ar",
+    "priority": "",
+    "senderPhone": "",
+    "createdAt": "2026-05-08T10:44:03.383Z"
   }
 ]

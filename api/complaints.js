@@ -4,7 +4,7 @@ const { uploadComplaintImages, cleanupUploadedImages, deleteImagesByUrl } = requ
 
 const VALID_TYPES = new Set(["message", "recommendation", "complaint"]);
 const VALID_STATUSES = new Set(["pending", "in_progress", "resolved"]);
-const VALID_PRIORITIES = new Set(["formal", "informal"]);
+const VALID_PRIORITIES = new Set(["formal", "informal", "communication"]);
 
 function cleanString(value, fallback = "") {
   const cleaned = String(value || "").trim();
