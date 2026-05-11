@@ -4320,6 +4320,7 @@ body.rtl .summary-card::before {
 
   .document-viewer-top {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .support-top,
@@ -4366,7 +4367,35 @@ body.rtl .summary-card::before {
   }
 
   .document-viewer-chip {
-    width: 100%;
+    width: min(100%, 320px);
+    min-height: 78px;
+    align-self: center;
+  }
+
+  .document-viewer-chip__logo {
+    max-height: 52px;
+  }
+
+  body.rtl .document-viewer-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.rtl .document-viewer-top > :first-child,
+  body.rtl .document-viewer-top > :last-child {
+    order: initial;
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  body.rtl .document-viewer-top > :first-child {
+    text-align: right;
+  }
+
+  body.rtl .document-viewer-chip {
+    align-items: center;
+    align-self: center;
+    text-align: center;
   }
 
   .support-chip {
