@@ -767,8 +767,25 @@ body.rtl .quiz-run-actions {
     grid-template-columns: 1fr;
   }
 
+  .quiz-entry-top {
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  .quiz-client-chip {
+    width: min(100%, 320px);
+    justify-self: center;
+    padding: 14px 18px;
+    border-radius: 24px;
+    text-align: center;
+  }
+
   .quiz-title-block {
     text-align: left;
+  }
+
+  body.rtl .quiz-client-chip {
+    text-align: center;
   }
 
   body.rtl .quiz-title-block {
@@ -787,6 +804,16 @@ body.rtl .quiz-run-actions {
   .quiz-result-panel {
     padding: 18px;
     border-radius: 24px;
+  }
+
+  .quiz-client-chip {
+    min-height: 78px;
+    display: grid;
+    align-content: center;
+  }
+
+  .quiz-title-block h1 {
+    font-size: clamp(1.95rem, 9vw, 2.85rem);
   }
 
   .quiz-run-top {
