@@ -1486,6 +1486,37 @@ function formatSupportDate(value, lang) {
   }
 }
 
+function formatSupportDateOnly(value, lang) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const locale = lang === "ar" ? "ar-MA" : lang === "en" ? "en-US" : "fr-MA";
+    const dateValue = /^\d{4}-\d{2}-\d{2}$/.test(String(value))
+      ? new Date(`${value}T00:00:00`)
+      : new Date(value);
+
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium"
+    }).format(dateValue);
+  } catch {
+    return value;
+  }
+}
+
+function formatSupportEntryDisplayDate(entry, lang) {
+  if (entry && entry.workDate) {
+    return formatSupportDateOnly(entry.workDate, lang);
+  }
+
+  if (entry && entry.workWeek) {
+    return `${getText(lang, "supportFieldWeek")}: ${entry.workWeek}`;
+  }
+
+  return formatSupportDate(entry && entry.createdAt, lang);
+}
+
 function buildSupportDraft(client) {
   const weeklyComplaintsView = isWeeklyComplaintsView();
   const lineLabel = weeklyComplaintsView ? "" : getSelectedSupportLineLabel();
@@ -1497,6 +1528,8 @@ function buildSupportDraft(client) {
     lineValue: weeklyComplaintsView ? "" : selectedSupportLine || (supportLineInputNode && supportLineInputNode.value) || "",
     type: supportType,
     senderPhone: (supportPhoneInputNode && supportPhoneInputNode.value.trim()) || "",
+    workDate: (supportDateInputNode && supportDateInputNode.value) || "",
+    workWeek: (supportWeekInputNode && supportWeekInputNode.value) || "",
     subject: (supportSubjectInputNode && supportSubjectInputNode.value.trim()) || "",
     details: (supportDetailsInputNode && supportDetailsInputNode.value.trim()) || "",
     images: supportPhotoItems.map((item) => ({
@@ -1548,8 +1581,9 @@ function buildSupportMessage(entry, lang) {
   lines.push(`${getText(lang, "supportFieldSubject")}: ${entry.subject || ""}`);
   lines.push(`${getText(lang, "supportFieldDetails")}: ${entry.details || ""}`);
 
-  if (entry.createdAt) {
-    lines.push(`${getText(lang, "supportLabelDate")}: ${formatSupportDate(entry.createdAt, lang)}`);
+  const displayDate = formatSupportEntryDisplayDate(entry, lang);
+  if (displayDate) {
+    lines.push(`${getText(lang, "supportLabelDate")}: ${displayDate}`);
   }
 
   return lines.join("\n");
@@ -1990,7 +2024,7 @@ function renderSupportHistory(lang) {
 
     const dateNode = document.createElement("span");
     dateNode.className = "support-history-item__date";
-    dateNode.textContent = formatSupportDate(entry.createdAt, lang);
+    dateNode.textContent = formatSupportEntryDisplayDate(entry, lang);
 
     const actionsNode = document.createElement("div");
     actionsNode.className = "support-history-item__actions";

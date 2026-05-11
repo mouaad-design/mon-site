@@ -29,6 +29,8 @@ function serializeComplaint(complaint) {
     lineValue: complaint.lineValue || "",
     priority: complaint.type === "complaint" ? complaint.priority || "formal" : "",
     senderPhone: complaint.senderPhone || "",
+    workDate: complaint.workDate || "",
+    workWeek: complaint.workWeek || "",
     createdAt: complaint.createdAt
   };
 }
@@ -66,6 +68,8 @@ async function createComplaint(request, response, deps) {
   const details = cleanString(body.details);
   const name = cleanString(body.name, cleanString(body.line, "Atelier"));
   const priority = type === "complaint" ? cleanString(body.priority, "formal") : "";
+  const workDate = cleanString(body.workDate);
+  const workWeek = cleanString(body.workWeek);
 
   if (!VALID_TYPES.has(type)) {
     sendApiError(sendJson, response, 400, "Invalid complaint type");
@@ -100,6 +104,8 @@ async function createComplaint(request, response, deps) {
       lineValue: cleanString(body.lineValue),
       priority,
       senderPhone: cleanString(body.senderPhone),
+      workDate,
+      workWeek,
       createdAt: new Date().toISOString()
     };
 

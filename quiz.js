@@ -13,7 +13,7 @@ const OPTION_LETTERS = ["A", "B", "C", "D"];
 
 const quizUi = {
   fr: {
-    pageTitle: "SC Training Platform - Quiz Special Characteristics Stellantis",
+    pageTitle: "Op2Qual Plateforme - Quiz Special Characteristics Stellantis",
     clientLabel: "Client selectionne",
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",
@@ -99,7 +99,7 @@ const quizUi = {
     confirmDeletePrompt: "Etes-vous sur de vouloir supprimer cet element ?"
   },
   en: {
-    pageTitle: "SC Training Platform - Stellantis Special Characteristics Quiz",
+    pageTitle: "Op2Qual Platform - Stellantis Special Characteristics Quiz",
     clientLabel: "Selected client",
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",
@@ -185,7 +185,7 @@ const quizUi = {
     confirmDeletePrompt: "Are you sure you want to delete this item?"
   },
   ar: {
-    pageTitle: "SC Training Platform - اختبار الميزات الخاصة Stellantis",
+    pageTitle: "منصة Op2Qual - اختبار الميزات الخاصة Stellantis",
     clientLabel: "العميل المحدد",
     clientValue: "Stellantis",
     titleKicker: "STELLANTIS",

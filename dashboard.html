@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Tableau de bord professionnel de la plateforme de formation SC.">
-  <title>SC Training Platform - Dashboard</title>
+  <title>Op2Qual Plateforme - Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=20260507-role-security">
+  <link rel="stylesheet" href="./style.css?v=20260511-versigent-chip-logo">
 </head>
   <body class="dashboard-page">
     <div class="hero-bg">
@@ -27,9 +27,10 @@
           <p class="dashboard-kicker" data-i18n="dashboardKicker">Le departement qualite vous remercie</p>
           <h1 data-i18n="dashboardTitle">Bienvenue dans votre espace</h1>
           <p class="dashboard-subtitle" data-i18n="dashboardSubtitle">Un espace simple pour acceder rapidement aux modules de formation, au suivi qualite et aux ressources du projet.</p>
-          <div class="dashboard-client-chip">
-            <span class="dashboard-client-chip__label" data-i18n="dashboardClientLabel">Client choisi</span>
-            <strong class="dashboard-client-chip__value" data-client-name>Stellantis</strong>
+          <div class="dashboard-client-chip" aria-label="Versigent">
+            <img class="dashboard-client-chip__logo" src="./assets/versigent-logo.jpg" alt="Versigent">
+            <span class="dashboard-client-chip__label" data-i18n="dashboardClientLabel" hidden>Client choisi</span>
+            <strong class="dashboard-client-chip__value" data-client-name hidden>Stellantis</strong>
           </div>
         </div>
 
@@ -152,7 +153,7 @@
   </main>
 
   <footer class="site-footer site-footer--dashboard reveal-section">
-    <p class="footer-title" data-i18n="footer">From Operator to Quality Excellence Platform 2026</p>
+    <p class="footer-title" data-i18n="footer">Op2Qual Plateforme 2026</p>
     <p class="footer-subtitle" data-i18n="dashboardFooterSubtitle">Interface de pilotage formation et qualite pour un usage simple, lisible et professionnel.</p>
   </footer>
 
