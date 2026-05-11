@@ -3637,8 +3637,8 @@ body.is-support-photo-lightbox-open {
 }
 
 .summary-card--client {
-  padding: 14px 16px;
-  overflow: visible;
+  padding: 0;
+  overflow: hidden;
 }
 
 .summary-client-logo {
