@@ -2697,6 +2697,11 @@ function updateDocumentViewer(lang) {
   const sortedDocuments = documents.slice().sort(compareDocumentTitles);
   const translatedName = getText(lang, getClientTranslationKey(client));
   const translatedSectionName = getText(lang, getDocumentSectionLabelKey(section));
+  const isComplaintsDocumentSection = section === "complaints-formal" || section === "complaints-informal";
+
+  document.body.classList.toggle("document-viewer-page--weekly-complaints", isComplaintsDocumentSection);
+  document.body.classList.toggle("document-viewer-page--complaints-formal", section === "complaints-formal");
+  document.body.classList.toggle("document-viewer-page--complaints-informal", section === "complaints-informal");
 
   if (documentClientNameNode) {
     documentClientNameNode.textContent = translatedName;
