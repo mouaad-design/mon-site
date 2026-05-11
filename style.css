@@ -1127,9 +1127,54 @@ body.rtl .login-card {
 
 .card-meta {
   margin-top: 10px;
-  padding-top: 8px;
+  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.18);
   text-align: left;
+}
+
+.signature-block {
+  display: grid;
+  gap: 6px;
+}
+
+.signature-line {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding-left: 16px;
+  color: #ffffff;
+}
+
+.signature-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff8f40;
+  box-shadow: 0 0 16px rgba(255, 143, 64, 0.58);
+}
+
+.signature-label {
+  color: rgba(255, 232, 218, 0.78);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.signature-line strong {
+  color: #fff7f2;
+  font-size: 0.84rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-align: right;
+  text-shadow: 0 0 18px rgba(255, 143, 64, 0.2);
 }
 
 .credit-line {
@@ -1160,6 +1205,53 @@ body.rtl .login-card {
     0 18px 40px rgba(0, 0, 0, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   text-align: center;
+}
+
+.home-page .site-footer {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(280px, 1.5fr) minmax(190px, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.footer-brand-mark {
+  min-width: 0;
+}
+
+.footer-signature {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-signature--author {
+  text-align: left;
+  justify-self: start;
+}
+
+.footer-signature--supervisor {
+  text-align: right;
+  justify-self: end;
+}
+
+.footer-signature span {
+  color: rgba(255, 232, 218, 0.72);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.footer-signature strong {
+  color: #fff7f2;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 18px rgba(255, 143, 64, 0.24);
 }
 
 .reveal-section {
@@ -1305,13 +1397,22 @@ body.motion-ready .reveal-section.is-visible {
 
 .document-viewer-chip {
   display: inline-flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 150px;
-  padding: 12px 14px;
-  border-radius: 18px;
+  align-items: center;
+  justify-content: center;
+  width: 226px;
+  min-height: 96px;
+  padding: 12px 20px;
+  border-radius: 24px;
   border: 1px solid rgba(255, 166, 138, 0.22);
   background: rgba(42, 22, 24, 0.34);
+  overflow: hidden;
+}
+
+.document-viewer-chip__logo {
+  width: 100%;
+  max-height: 64px;
+  object-fit: contain;
+  display: block;
 }
 
 .document-viewer-chip__label {
@@ -4360,6 +4461,32 @@ body.rtl .summary-card::before {
 
   .card-subtitle {
     white-space: normal;
+  }
+
+  .home-page .site-footer {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 16px 14px;
+  }
+
+  .footer-brand-mark {
+    order: 1;
+  }
+
+  .footer-signature--author {
+    order: 2;
+  }
+
+  .footer-signature--supervisor {
+    order: 3;
+  }
+
+  .footer-signature,
+  .footer-signature--author,
+  .footer-signature--supervisor {
+    width: 100%;
+    justify-self: stretch;
+    text-align: center;
   }
 
   .lang-switcher {
