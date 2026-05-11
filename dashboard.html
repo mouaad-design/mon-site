@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Tajawal:wght@400;500;500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=20260511-versigent-chip-logo">
+  <link rel="stylesheet" href="./style.css?v=20260511-selected-client-text">
 </head>
   <body class="dashboard-page">
     <div class="hero-bg">
@@ -27,10 +27,9 @@
           <p class="dashboard-kicker" data-i18n="dashboardKicker">Le departement qualite vous remercie</p>
           <h1 data-i18n="dashboardTitle">Bienvenue dans votre espace</h1>
           <p class="dashboard-subtitle" data-i18n="dashboardSubtitle">Un espace simple pour acceder rapidement aux modules de formation, au suivi qualite et aux ressources du projet.</p>
-          <div class="dashboard-client-chip" aria-label="Versigent">
-            <img class="dashboard-client-chip__logo" src="./assets/versigent-logo.jpg" alt="Versigent">
-            <span class="dashboard-client-chip__label" data-i18n="dashboardClientLabel" hidden>Client choisi</span>
-            <strong class="dashboard-client-chip__value" data-client-name hidden>Stellantis</strong>
+          <div class="dashboard-client-chip">
+            <span class="dashboard-client-chip__label" data-i18n="dashboardClientLabel">Client choisi</span>
+            <strong class="dashboard-client-chip__value" data-client-name>Stellantis</strong>
           </div>
         </div>
 
@@ -40,12 +39,6 @@
             <div class="dashboard-mini-logo dashboard-mini-logo--single dashboard-mini-logo--mobile-secondary dashboard-mini-logo--aptiv">
               <img src="./assets/aptiv-display.svg" alt="Aptiv">
             </div>
-            <div class="dashboard-mini-logo dashboard-mini-logo--single">
-              <img src="./assets/versigent-logo.jpg" alt="Versigent">
-            </div>
-            <div class="dashboard-mini-logo dashboard-mini-logo--single dashboard-mini-logo--client-mobile">
-              <img src="./assets/stellantis-logo-wide.jpg" alt="Stellantis" data-client-logo>
-            </div>
           </div>
           <button type="button" class="dashboard-visitor-mode-btn" data-visitor-mode-button data-admin-only data-i18n="dashboardVisitorModeButton">Activer mode visiteur</button>
         </aside>
@@ -53,10 +46,9 @@
 
       <div class="dashboard-summary">
         <article class="summary-card summary-card--client">
-          <span class="summary-client-logo">
-          <img src="./assets/stellantis-logo-wide.jpg" alt="Stellantis" data-client-logo>
-            </span>
-          </article>
+          <span class="summary-label" data-i18n="dashboardClientLabel">Client choisi</span>
+          <strong class="summary-value" data-client-name>Stellantis</strong>
+        </article>
           <article class="summary-card summary-card--standard">
           <span class="summary-label" data-i18n="dashboardStandardLabel">Reference qualite</span>
           <strong class="summary-value" data-i18n="dashboardStandardValue">IATF 16949 / Caracteristiques speciales</strong>

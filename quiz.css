@@ -61,21 +61,8 @@
 }
 
 .quiz-client-chip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 136px;
   padding: 18px 24px;
   border-radius: 28px;
-  overflow: hidden;
-}
-
-.quiz-client-chip__logo {
-  width: 100%;
-  max-width: 220px;
-  max-height: 86px;
-  object-fit: contain;
-  display: block;
 }
 
 .quiz-client-chip span {
