@@ -163,6 +163,72 @@ html {
   }
 }
 
+@keyframes heroHomeFirst {
+  0%,
+  20% {
+    opacity: 1;
+  }
+
+  25%,
+  95% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes heroHomeSecond {
+  0%,
+  20% {
+    opacity: 0;
+  }
+
+  25%,
+  45% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes heroHomeThird {
+  0%,
+  45% {
+    opacity: 0;
+  }
+
+  50%,
+  70% {
+    opacity: 1;
+  }
+
+  75%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes heroHomeFourth {
+  0%,
+  70% {
+    opacity: 0;
+  }
+
+  75%,
+  95% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes heroLayerMotion {
   0%,
   100% {
@@ -374,8 +440,8 @@ body.rtl .gps-card__head {
 }
 
 .home-page .hero-slide--cablage {
-  animation-name: heroPeugeot, heroLayerMotion;
-  animation-duration: 30s, 30s;
+  animation-name: heroHomeFirst, heroLayerMotion;
+  animation-duration: 40s, 40s;
   animation-timing-function: ease-in-out, ease-in-out;
   animation-iteration-count: infinite, infinite;
   animation-fill-mode: both, both;
@@ -383,6 +449,38 @@ body.rtl .gps-card__head {
 }
 
 .home-page .hero-slide--home-versigent {
+  animation-name: heroHomeSecond, heroLayerMotion;
+  animation-duration: 40s, 40s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-fill-mode: both, both;
+}
+
+.home-page .hero-slide--home-aptiv-person {
+  animation-name: heroHomeThird, heroLayerMotion;
+  animation-duration: 40s, 40s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-fill-mode: both, both;
+}
+
+.home-page .hero-slide--training-team {
+  animation-name: heroHomeFourth, heroLayerMotion;
+  animation-duration: 40s, 40s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-fill-mode: both, both;
+}
+
+.client-select-page .hero-slide--home-aptiv-person {
+  animation-name: heroPeugeot, heroLayerMotion;
+  animation-duration: 30s, 30s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-fill-mode: both, both;
+}
+
+.client-select-page .hero-slide--home-versigent {
   animation-name: heroVersigent, heroLayerMotion;
   animation-duration: 30s, 30s;
   animation-timing-function: ease-in-out, ease-in-out;
@@ -390,7 +488,7 @@ body.rtl .gps-card__head {
   animation-fill-mode: both, both;
 }
 
-.home-page .hero-slide--home-aptiv-person {
+.client-select-page .hero-slide--training-team {
   animation-name: heroTeslaBg, heroLayerMotion;
   animation-duration: 30s, 30s;
   animation-timing-function: ease-in-out, ease-in-out;
@@ -469,6 +567,12 @@ input {
 
 .hero-slide--home-aptiv-person {
   background-image: url("./assets/fond.jpg");
+  animation-name: heroTeslaBg, heroLayerMotion;
+}
+
+.hero-slide--training-team {
+  background-image: url("./assets/training-team-background.jpeg");
+  background-position: center center;
   animation-name: heroTeslaBg, heroLayerMotion;
 }
 

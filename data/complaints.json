@@ -32,5 +32,39 @@
     "priority": "",
     "senderPhone": "",
     "createdAt": "2026-05-08T10:44:03.383Z"
+  },
+  {
+    "id": "2d67bba7-fe5d-4e48-9580-1d9f2ba8ade3",
+    "name": "MEL AV",
+    "type": "complaint",
+    "subject": "Étiquettes caché par ruban adhésif",
+    "details": ".",
+    "imageUrls": [
+      "https://res.cloudinary.com/dystakpay/image/upload/v1778483056/sc-training/complaints/zhats9e4ttksfk0hfacv.jpg"
+    ],
+    "status": "resolved",
+    "client": "stellantis",
+    "line": "MEL AV",
+    "lineValue": "mel-av",
+    "priority": "communication",
+    "senderPhone": "",
+    "createdAt": "2026-05-11T07:04:16.915Z"
+  },
+  {
+    "id": "3b320a47-b9e9-41e5-9c71-4e07ed68eb02",
+    "name": "PHEV multifunction",
+    "type": "complaint",
+    "subject": "Étiquettes caché par ruban adhésif",
+    "details": ".",
+    "imageUrls": [
+      "https://res.cloudinary.com/dystakpay/image/upload/v1778483250/sc-training/complaints/lb5wogiuvz2u5nikfcnj.jpg"
+    ],
+    "status": "pending",
+    "client": "stellantis",
+    "line": "PHEV multifunction",
+    "lineValue": "phev-multifunction",
+    "priority": "communication",
+    "senderPhone": "",
+    "createdAt": "2026-05-11T07:07:31.315Z"
   }
 ]

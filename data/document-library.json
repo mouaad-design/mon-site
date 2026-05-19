@@ -195,6 +195,28 @@
       "isServerSaved": true,
       "cloudinaryPublicId": "sc-training/documents/stellantis/quality/fikwi6j2rumlzqwpifa7",
       "cloudinaryResourceType": "image"
+    },
+    {
+      "id": "whatsapp-image-2026-05-08-at-10-53-37",
+      "title": "WhatsApp Image 2026-05-08 at 10.53.37,.jpeg",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778352450/sc-training/documents/versigent/complaints-formal/nvemz2mjxnzrsh4nbbzl.jpg",
+      "mediaType": "image/jpeg",
+      "client": "versigent",
+      "section": "complaints-formal",
+      "isServerSaved": true,
+      "cloudinaryPublicId": "sc-training/documents/versigent/complaints-formal/nvemz2mjxnzrsh4nbbzl",
+      "cloudinaryResourceType": "image"
+    },
+    {
+      "id": "whatsapp-image-2026-05-08-at-10-53-37",
+      "title": "WhatsApp Image 2026-05-08 at 10.53.37.jpeg",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778352470/sc-training/documents/versigent/complaints-informal/rvlz1vbrmlwgbkgau1jx.jpg",
+      "mediaType": "image/jpeg",
+      "client": "versigent",
+      "section": "complaints-informal",
+      "isServerSaved": true,
+      "cloudinaryPublicId": "sc-training/documents/versigent/complaints-informal/rvlz1vbrmlwgbkgau1jx",
+      "cloudinaryResourceType": "image"
     }
   ],
   "deletedPaths": [
@@ -214,11 +236,29 @@
     {
       "id": "capture-d-ecran-2026-04-09-143742",
       "title": "Capture d'écran 2026-04-09 143742.png",
-      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778101905/sc-training/documents/stellantis/training/b6vhekyu9gmdetxdoc5s.png",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778353004/sc-training/documents/stellantis/training/jootwpjvrrhxeqaah3xr.png",
       "client": "stellantis",
       "section": "training",
       "sourcePaths": [],
-      "deletedAt": "2026-05-08T23:13:28.849Z"
+      "deletedAt": "2026-05-11T06:59:45.510Z"
+    },
+    {
+      "id": "capture-d-ecran-2026-04-20-090551",
+      "title": "Capture d'écran 2026-04-20 090551.png",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778353029/sc-training/documents/stellantis/tutorials/khnzrxu7zmrwo7bcoosy.png",
+      "client": "stellantis",
+      "section": "tutorials",
+      "sourcePaths": [],
+      "deletedAt": "2026-05-11T07:00:00.396Z"
+    },
+    {
+      "id": "capture-d-ecran-2026-04-21-120719",
+      "title": "Capture d'écran 2026-04-21 120719.png",
+      "path": "https://res.cloudinary.com/dystakpay/image/upload/v1778353048/sc-training/documents/stellantis/quality/w7ss4pvubvijwysib9gy.png",
+      "client": "stellantis",
+      "section": "quality",
+      "sourcePaths": [],
+      "deletedAt": "2026-05-11T07:00:14.163Z"
     }
   ]
 }
